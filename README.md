@@ -1,16 +1,20 @@
-# Macroservice App
+# Macroservice App V2
 
-V1 inicial do assistente da Macroservice Inteligência Automotiva.
+Protótipo funcional mantendo a interface azul/laranja da Macroservice.
 
-## Funções
-- Clientes
-- Veículos
-- Serviços
-- Peças
+## Novidades
+- Cadastro inicial de cliente
+- Área separada Cliente / Administrador
+- Cliente cadastra veículos
+- Cliente solicita serviço
+- Cliente escolhe data e apenas horários disponíveis
+- Duração do serviço bloqueia horários sobrepostos
+- Área administrativa "Serviços Solicitados"
+- Admin aceita, recusa ou conclui solicitações
+- Agenda administrativa
 - Orçamento rápido
-- Agendamento
-- Histórico / OS
-- Relatórios
-- Configurações
+- Histórico e relatórios
 
-Os dados desta versão são salvos localmente no aparelho (localStorage).
+## Importante
+Esta V2 é uma demonstração local. Os dados ficam no `localStorage` do aparelho.
+Para solicitações feitas no celular do cliente aparecerem em tempo real no celular do administrador, a próxima etapa é conectar autenticação e banco online (ex.: Supabase).
