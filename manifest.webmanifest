@@ -1,20 +1,19 @@
 {
+  "id": "/Macroservice-app/",
   "name": "Macroservice Inteligência Automotiva",
   "short_name": "Macroservice",
-  "description": "Assistente de agendamento, orçamento e gestão de serviços automotivos da Macroservice.",
-  "start_url": "./",
-  "scope": "./",
+  "description": "Assistente de agendamento, orçamento, manutenção e gestão de serviços automotivos da Macroservice.",
+  "start_url": "/Macroservice-app/",
+  "scope": "/Macroservice-app/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#061725",
-  "theme_color": "#061725",
+  "theme_color": "#071827",
   "lang": "pt-BR",
   "icons": [
-    {
-      "src": "logo.png",
-      "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
   ]
 }
