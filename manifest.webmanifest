@@ -1,0 +1,20 @@
+{
+  "name": "Macroservice Inteligência Automotiva",
+  "short_name": "Macroservice",
+  "description": "Assistente de agendamento, orçamento e gestão de serviços automotivos da Macroservice.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#061725",
+  "theme_color": "#061725",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
