@@ -2,105 +2,66 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#071827">
-
+  <meta name="description" content="Assistente de oficina da Macroservice Inteligência Automotiva">
   <title>Macroservice App</title>
-
-  <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="logo.png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-
-  <main class="app">
-
-    <header class="topo">
-      <img src="logo.png" alt="Macroservice" class="logo">
-      <div>
-        <h1>MACROSERVICE</h1>
-        <p>INTELIGÊNCIA AUTOMOTIVA</p>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand-area">
+        <img src="logo.png" alt="Macroservice" class="brand-logo">
+        <div class="brand-text">
+          <h1>MACROSERVICE</h1>
+          <p>INTELIGÊNCIA AUTOMOTIVA</p>
+        </div>
       </div>
     </header>
 
-    <section class="boas-vindas">
-      <h2>Olá! 👋</h2>
-      <p>Bem-vindo ao seu assistente de oficina.</p>
-    </section>
+    <main class="main-content">
+      <section id="homeView" class="view active">
+        <div class="welcome">
+          <h2>Olá! 👋</h2>
+          <p>Bem-vindo ao seu assistente de oficina.</p>
+        </div>
 
-    <section class="menu">
+        <div class="dashboard-grid">
+          <button class="menu-card" data-view="agendamento"><span class="menu-icon">📅</span><strong>Novo Agendamento</strong></button>
+          <button class="menu-card" data-view="orcamento"><span class="menu-icon">📄</span><strong>Orçamento Rápido</strong></button>
+          <button class="menu-card" data-view="clientes"><span class="menu-icon">👥</span><strong>Clientes</strong></button>
+          <button class="menu-card" data-view="veiculos"><span class="menu-icon">🚗</span><strong>Veículos</strong></button>
+          <button class="menu-card" data-view="servicos"><span class="menu-icon">🛠️</span><strong>Serviços</strong></button>
+          <button class="menu-card" data-view="pecas"><span class="menu-icon">⚙️</span><strong>Peças</strong></button>
+          <button class="menu-card" data-view="historico"><span class="menu-icon">🕘</span><strong>Histórico</strong></button>
+          <button class="menu-card" data-view="relatorios"><span class="menu-icon">📊</span><strong>Relatórios</strong></button>
+          <button class="menu-card" data-view="configuracoes"><span class="menu-icon">⚙️</span><strong>Configurações</strong></button>
+        </div>
+      </section>
 
-      <button onclick="abrirModulo('agendamento')">
-        <span>📅</span>
-        Novo<br>Agendamento
-      </button>
+      <section id="moduleView" class="view">
+        <div class="module-header">
+          <button id="backBtn" class="back-btn">‹</button>
+          <div>
+            <h2 id="moduleTitle">Macroservice</h2>
+            <p id="moduleSubtitle">Assistente de oficina</p>
+          </div>
+        </div>
+        <div id="moduleContent" class="module-content"></div>
+      </section>
+    </main>
 
-      <button onclick="abrirModulo('orcamento')">
-        <span>📄</span>
-        Orçamento<br>Rápido
-      </button>
-
-      <button onclick="abrirModulo('clientes')">
-        <span>👥</span>
-        Clientes
-      </button>
-
-      <button onclick="abrirModulo('veiculos')">
-        <span>🚗</span>
-        Veículos
-      </button>
-
-      <button onclick="abrirModulo('servicos')">
-        <span>🛠️</span>
-        Serviços
-      </button>
-
-      <button onclick="abrirModulo('pecas')">
-        <span>⚙️</span>
-        Peças
-      </button>
-
-      <button onclick="abrirModulo('historico')">
-        <span>🕘</span>
-        Histórico
-      </button>
-
-      <button onclick="abrirModulo('relatorios')">
-        <span>📊</span>
-        Relatórios
-      </button>
-
-      <button onclick="abrirModulo('configuracoes')">
-        <span>⚙️</span>
-        Configurações
-      </button>
-
-    </section>
-
-    <section id="conteudo" class="conteudo">
-      <h2>Macroservice App</h2>
-      <p>Selecione uma opção acima.</p>
-    </section>
-
-    <footer>
+    <footer class="footer">
       <strong>MACROSERVICE</strong>
-      <p>Confiabilidade e tecnologia em diagnóstico e manutenção automotiva.</p>
+      <span>Inteligência Automotiva</span>
       <small>Juruti - PA</small>
     </footer>
-
-  </main>
+  </div>
 
   <script src="app.js"></script>
-
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js")
-        .then(() => console.log("Service Worker registrado com sucesso"))
-        .catch((erro) => console.error("Erro no Service Worker:", erro));
-    });
-  }
-</script>
-
 </body>
 </html>
