@@ -1,0 +1,102 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --azul: #061725;
+  --azul2: #0b263b;
+  --azul3: #123b59;
+  --azul-claro: #00a8ff;
+  --laranja: #ff6a00;
+  --laranja2: #ff8a00;
+  --prata: #e5e7eb;
+  --cinza: #94a3b8;
+  --branco: #ffffff;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(circle at top, #123b59 0%, #061725 45%, #020a10 100%);
+  color: var(--branco);
+  min-height: 100vh;
+}
+
+.app {
+  width: 100%;
+  max-width: 520px;
+  min-height: 100vh;
+  margin: auto;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 23, 37, 0.96),
+    rgba(2, 10, 16, 0.98)
+  );
+}
+
+/* CABEÇALHO */
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+  border-bottom: 2px solid var(--azul-claro);
+  background: linear-gradient(135deg, #020b12, #0b263b);
+  box-shadow: 0 4px 20px rgba(0, 168, 255, 0.18);
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 15px;
+}
+
+.topo h1 {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--prata);
+  text-shadow: 0 2px 4px #000;
+}
+
+.topo p {
+  margin-top: 3px;
+  color: var(--laranja);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* BOAS-VINDAS */
+
+.boas-vindas {
+  padding: 22px 18px 12px;
+}
+
+.boas-vindas h2 {
+  font-size: 24px;
+}
+
+.boas-vindas p {
+  margin-top: 5px;
+  color: var(--cinza);
+  font-size: 14px;
+}
+
+/* MENU PRINCIPAL */
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 14px;
+}
+
+.menu button {
+  min-height: 112px;
+  border: 1px solid #23465f;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #102c42, #081
