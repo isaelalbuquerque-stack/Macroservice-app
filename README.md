@@ -1,4 +1,4 @@
-# Macroservice App V5.5
+# Macroservice App V5.6
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -68,3 +68,24 @@ A placa é útil para identificar marca/modelo/ano/versão, mas a aplicação ex
 
 ## Procedimentos técnicos
 Os procedimentos incorporados são referências operacionais para organizar o trabalho da oficina. Torques, folgas, fluidos, capacidades, ferramentas especiais, sequências e boletins devem ser conferidos no manual técnico específico do veículo antes da execução.
+
+
+## Novidades V5.6
+- Consulta por placa ligada à Edge Function `consultar-placa` do projeto Supabase da Macroservice.
+- O Bearer Token da APIBrasil não é armazenado no app nem no GitHub; permanece em `APIBRASIL_TOKEN` nos Secrets do Supabase.
+- Configurações do administrador agora permitem salvar/testar a URL e a Publishable Key do Supabase.
+- Resposta da FIPE Beta mapeada para marca, modelo, ano fabricação/modelo, combustível, cilindrada, potência, cor, chassi parcial, código FIPE, valor e mês de referência.
+- Quando a FIPE retorna mais de uma versão, o app permite escolher outra opção encontrada.
+- Consultas em homologação são destacadas como dados de teste para evitar uso indevido em cotação real.
+- Cadastro do veículo ganhou campo `VIN completo lido pelo Autel`.
+- Catálogo técnico do veículo ganhou uma área para registrar o VIN AutoVIN do Autel DS900BT; o VIN completo passa a ser a referência prioritária para compatibilidade de peças.
+- Incluído backup do código da Edge Function em `supabase/consultar-placa/index.ts`.
+
+## Para ativar a consulta por placa no app
+1. Abra o Macroservice como administrador → Configurações.
+2. A URL do projeto Supabase já vem preenchida.
+3. Cole somente a Publishable Key `sb_publishable_...` e toque em **Salvar integração**.
+4. Use **Testar consulta ABC1234**. Enquanto a Edge Function estiver com `homolog: true`, o app mostrará HOMOLOGAÇÃO e os dados são somente de teste.
+5. Para produção, adicione saldo no provedor e altere conscientemente a Edge Function para `homolog: false`.
+
+Nunca coloque `APIBRASIL_TOKEN`, `service_role` ou `sb_secret_...` no GitHub Pages.

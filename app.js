@@ -73,7 +73,20 @@ function openAuthModal(title, bodyHtml, submitLabel="Fechar", onSubmit=null){
 }
 
 function googleIntegration(){ return window.MACROSERVICE_INTEGRATIONS?.google || {}; }
-function plateIntegration(){ return window.MACROSERVICE_INTEGRATIONS?.plateLookup || {}; }
+function supabaseIntegration(){
+  const base=window.MACROSERVICE_INTEGRATIONS?.supabase || {};
+  const saved=store.get("macro_supabase_config",{});
+  return {...base,...(saved||{})};
+}
+function plateIntegration(){
+  const base=window.MACROSERVICE_INTEGRATIONS?.plateLookup || {};
+  const sup=supabaseIntegration();
+  return {
+    ...base,
+    endpoint:base.endpoint || (sup.url?sup.url.replace(/\/$/,"")+"/functions/v1/consultar-placa":""),
+    publishableKey:base.publishableKey || sup.publishableKey || ""
+  };
+}
 function normalizePlate(plate){ return String(plate||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7); }
 function decodeJwtPayload(token){
   try{
@@ -106,7 +119,7 @@ function renderGoogleIdentityButton(attempt=0){
   const cfg=googleIntegration();
   if(!cfg.clientId){
     host.innerHTML=`<button type="button" class="google-fallback-btn" id="googleSetupBtn"><img src="https://developers.google.com/static/identity/images/g-logo.png" alt=""><span>Continuar com Google</span></button><small class="integration-hint">Login Google ainda precisa do Client ID OAuth.</small>`;
-    $("#googleSetupBtn").onclick=()=>openAuthModal("Ativar login Google",`<p>O botão agora usa a integração oficial do Google Identity Services.</p><p>Para entrar de verdade, adicione o <b>Client ID OAuth 2.0</b> em <code>integrations.js</code> e autorize o domínio do GitHub Pages no Google Cloud.</p><p>Depois disso, o próprio Google renderiza o botão e retorna a conta autenticada.</p>`,`Fechar`);
+    $("#googleSetupBtn").onclick=()=>openAuthModal("Ativar login Google",`<p>O botão usa o Google Identity Services.</p><p>Para entrar de verdade, configure o <b>Client ID OAuth 2.0</b> e autorize o domínio do GitHub Pages.</p><p>A integração de banco/autenticação com Supabase será a próxima etapa.</p>`,`Fechar`);
     return;
   }
   if(!window.google?.accounts?.id){ if(attempt<15)setTimeout(()=>renderGoogleIdentityButton(attempt+1),300); return; }
@@ -115,46 +128,115 @@ function renderGoogleIdentityButton(attempt=0){
   google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",text:"continue_with",shape:"rectangular",logo_alignment:"left",width:Math.min(360,Math.max(250,host.clientWidth||340)),locale:"pt-BR"});
 }
 function normalizePlateResponse(raw,plate){
-  const d=raw?.data||raw?.result||raw?.vehicle||raw||{};
+  // Formato limpo da Edge Function V5.6.
+  if(raw?.veiculo && raw?.fipe){
+    return {
+      placa:normalizePlate(raw.placa||plate),
+      marca:String(raw.veiculo.marca||"").trim(),
+      modelo:String(raw.veiculo.modelo||"").trim(),
+      versao:"",
+      anoFabricacao:String(raw.veiculo.anoFabricacao||"").trim(),
+      anoModelo:String(raw.veiculo.anoModelo||"").trim(),
+      motor:"",
+      codigoMotor:"",
+      combustivel:String(raw.veiculo.combustivel||"").trim(),
+      cambio:"",
+      chassi:String(raw.veiculo.chassiParcial||"").trim().toUpperCase(),
+      cor:String(raw.veiculo.cor||"").trim(),
+      fipe:String(raw.fipe.codigo||"").trim(),
+      fipeValor:raw.fipe.valor ?? "",
+      fipeReferencia:String(raw.fipe.mesReferencia||"").trim(),
+      cilindradas:String(raw.veiculo.cilindradas||"").trim(),
+      potenciaCv:String(raw.veiculo.potenciaCv||"").trim(),
+      homologacao:raw.homologacao===true,
+      opcoesFipe:Array.isArray(raw.opcoesFipe)?raw.opcoesFipe:[],
+      fonteConsulta:"APIBrasil Fipe via Supabase"
+    };
+  }
+
+  // Compatibilidade com a resposta bruta da APIBrasil usada durante os testes.
+  const apiPayload=raw?.dados?.data?.data || raw?.data?.data || raw?.data || raw || {};
+  const options=Array.isArray(apiPayload?.data)?apiPayload.data:[];
+  const principal=options.find(x=>x?.principal===true)||options[0]||{};
+  const veic=apiPayload?.veiculo||{};
+  if(options.length || Object.keys(veic).length){
+    return {
+      placa:normalizePlate(plate),
+      marca:String(principal.marca||"").trim(),modelo:String(principal.modelo||"").trim(),versao:"",
+      anoFabricacao:String(principal.anoFabricacao||"").trim(),anoModelo:String(principal.anoModelo||"").trim(),
+      motor:"",codigoMotor:"",combustivel:String(veic.combustivel||principal.combustivel||"").trim(),cambio:"",
+      chassi:String(veic.chassi||"").trim().toUpperCase(),cor:String(veic.cor||"").trim(),
+      fipe:String(principal.codigoFipe||"").trim(),fipeValor:principal.valor??"",fipeReferencia:String(principal.mesReferencia||"").trim(),
+      cilindradas:String(veic.cilindradas||"").trim(),potenciaCv:String(veic.potencia||"").trim(),
+      homologacao:raw?.homologacao===true || raw?.homolog===true || raw?.dados?.homolog===true,
+      opcoesFipe:options.map(x=>({principal:x.principal===true,marca:x.marca||"",modelo:x.modelo||"",anoFabricacao:x.anoFabricacao||"",anoModelo:x.anoModelo||"",combustivel:x.combustivel||"",codigoFipe:x.codigoFipe||"",valor:x.valor??null,mesReferencia:x.mesReferencia||""})),
+      fonteConsulta:"APIBrasil Fipe via Supabase"
+    };
+  }
+
+  // Compatibilidade com provedores genéricos da V5.5.
+  const d=raw?.result||raw?.vehicle||raw||{};
   const pick=(...keys)=>{for(const k of keys){if(d?.[k]!=null&&d[k]!=="")return d[k];}return "";};
-  const brand=pick("marca","brand","make","fabricante");
-  const model=pick("modelo","model","vehicleModel");
   return {
-    placa:normalizePlate(pick("placa","plate")||plate),
-    marca:String(brand||"").trim(),modelo:String(model||"").trim(),
-    versao:String(pick("versao","version","trim")||"").trim(),
-    anoFabricacao:String(pick("anoFabricacao","ano_fabricacao","manufactureYear","year")||"").trim(),
-    anoModelo:String(pick("anoModelo","ano_modelo","modelYear")||"").trim(),
-    motor:String(pick("motor","engine","motorizacao","engineDescription")||"").trim(),
-    codigoMotor:String(pick("codigoMotor","engineCode","motorCode")||"").trim(),
-    combustivel:String(pick("combustivel","fuel","fuelType")||"").trim(),
-    cambio:String(pick("cambio","transmissao","transmission")||"").trim(),
-    chassi:String(pick("chassi","vin","VIN")||"").trim(),
-    cor:String(pick("cor","color")||"").trim(),
-    fipe:String(pick("fipe","codigoFipe","fipeCode")||"").trim(),
-    fonteConsulta:"Consulta por placa"
+    placa:normalizePlate(pick("placa","plate")||plate),marca:String(pick("marca","brand","make","fabricante")||"").trim(),modelo:String(pick("modelo","model","vehicleModel")||"").trim(),
+    versao:String(pick("versao","version","trim")||"").trim(),anoFabricacao:String(pick("anoFabricacao","ano_fabricacao","manufactureYear","year")||"").trim(),anoModelo:String(pick("anoModelo","ano_modelo","modelYear")||"").trim(),
+    motor:String(pick("motor","engine","motorizacao","engineDescription")||"").trim(),codigoMotor:String(pick("codigoMotor","engineCode","motorCode")||"").trim(),combustivel:String(pick("combustivel","fuel","fuelType")||"").trim(),cambio:String(pick("cambio","transmissao","transmission")||"").trim(),
+    chassi:String(pick("chassi","vin","VIN")||"").trim(),cor:String(pick("cor","color")||"").trim(),fipe:String(pick("fipe","codigoFipe","fipeCode")||"").trim(),
+    fipeValor:pick("valorFipe","fipeValue","valor")||"",fipeReferencia:String(pick("mesReferencia","referenceMonth")||"").trim(),cilindradas:String(pick("cilindradas","engineCapacity")||"").trim(),potenciaCv:String(pick("potencia","potenciaCv","powerCv")||"").trim(),
+    homologacao:false,opcoesFipe:[],fonteConsulta:"Consulta por placa"
   };
 }
 async function lookupVehiclePlate(plate){
   const cfg=plateIntegration(), clean=normalizePlate(plate);
   if(clean.length!==7)throw new Error("PLACA_INVALIDA");
   if(!cfg.endpoint)throw new Error("PLATE_API_NOT_CONFIGURED");
-  const url=cfg.endpoint.includes("{plate}")?cfg.endpoint.replace("{plate}",encodeURIComponent(clean)):cfg.endpoint+(cfg.endpoint.includes("?")?"&":"?")+"plate="+encodeURIComponent(clean);
-  const headers={Accept:"application/json",...(cfg.additionalHeaders||{})};
-  if(cfg.token)headers[cfg.tokenHeader||"Authorization"]=(cfg.tokenPrefix??"Bearer ")+cfg.token;
-  const res=await fetch(url,{headers});
-  if(!res.ok)throw new Error("PLATE_API_"+res.status);
-  return normalizePlateResponse(await res.json(),clean);
+
+  let res;
+  if(cfg.mode==="supabase-edge" || cfg.endpoint.includes("supabase.co/functions/v1/")){
+    const key=String(cfg.publishableKey||"").trim();
+    if(!key || key.includes("COLE_"))throw new Error("SUPABASE_KEY_NOT_CONFIGURED");
+    res=await fetch(cfg.endpoint,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Accept":"application/json",
+        "apikey":key,
+        "Authorization":`Bearer ${key}`
+      },
+      body:JSON.stringify({placa:clean})
+    });
+  }else{
+    const url=cfg.endpoint.includes("{plate}")?cfg.endpoint.replace("{plate}",encodeURIComponent(clean)):cfg.endpoint+(cfg.endpoint.includes("?")?"&":"?")+"plate="+encodeURIComponent(clean);
+    const headers={Accept:"application/json",...(cfg.additionalHeaders||{})};
+    if(cfg.token)headers[cfg.tokenHeader||"Authorization"]=(cfg.tokenPrefix??"Bearer ")+cfg.token;
+    res=await fetch(url,{headers});
+  }
+
+  let raw={};
+  try{raw=await res.json();}catch{}
+  if(!res.ok){
+    const msg=raw?.erro||raw?.error||raw?.message||raw?.detalhe?.message||"";
+    const e=new Error("PLATE_API_"+res.status);e.status=res.status;e.detail=msg;e.raw=raw;throw e;
+  }
+  return normalizePlateResponse(raw,clean);
 }
 function vehicleFields(prefix,clientSelect=""){
   return `${clientSelect}<div class="plate-row"><label>Placa<input id="${prefix}Placa" maxlength="7" placeholder="ABC1D23" autocomplete="off"></label><button type="button" class="secondary-btn lookup-plate-btn" id="${prefix}Lookup">Consultar placa</button></div><div class="plate-status" id="${prefix}PlateStatus"></div>
   <label>Marca<select id="${prefix}Marca">${marcaOptions()}</select></label><label>Modelo<select id="${prefix}Modelo"><option value="">Selecione a marca</option></select></label>
   <label>Versão<input id="${prefix}Versao" placeholder="Ex.: Attack LE"></label><div class="two-cols"><label>Ano fabricação<input id="${prefix}AnoFab" placeholder="2012"></label><label>Ano modelo<input id="${prefix}AnoMod" placeholder="2013"></label></div>
   <label>Motor / motorização<input id="${prefix}Motor" placeholder="Ex.: 2.5 YD25"></label><label>Código do motor<input id="${prefix}CodMotor" placeholder="Ex.: YD25"></label>
+  <div class="two-cols"><label>Cilindrada (cm³)<input id="${prefix}Cilindradas" placeholder="Ex.: 2499"></label><label>Potência (cv)<input id="${prefix}Potencia" placeholder="Ex.: 190"></label></div>
   <div class="two-cols"><label>Combustível<input id="${prefix}Combustivel" placeholder="Diesel / Flex / Gasolina"></label><label>Câmbio<input id="${prefix}Cambio" placeholder="Manual / Automático / CVT"></label></div>
-  <label>Chassi / VIN<input id="${prefix}Chassi" placeholder="Opcional, recomendado para peças"></label><div class="two-cols"><label>Cor<input id="${prefix}Cor"></label><label>Código FIPE<input id="${prefix}Fipe"></label></div>`;
+  <label>Chassi parcial / identificação da placa<input id="${prefix}Chassi" placeholder="Pode vir mascarado na consulta"></label>
+  <label>VIN completo lido pelo Autel<input id="${prefix}VinAutel" maxlength="17" placeholder="Cole o VIN obtido pelo AutoVIN do DS900BT"></label>
+  <div class="two-cols"><label>Cor<input id="${prefix}Cor"></label><label>Código FIPE<input id="${prefix}Fipe"></label></div>
+  <div class="two-cols"><label>Valor FIPE (R$)<input id="${prefix}FipeValor" type="number" step="0.01"></label><label>Referência FIPE<input id="${prefix}FipeRef" placeholder="Ex.: janeiro de 2026"></label></div>`;
 }
-function bindVehicleFields(prefix){ bindMarcaModelo($("#"+prefix+"Marca"),$("#"+prefix+"Modelo")); $("#"+prefix+"Placa").oninput=e=>e.target.value=normalizePlate(e.target.value); }
+function bindVehicleFields(prefix){
+  bindMarcaModelo($("#"+prefix+"Marca"),$("#"+prefix+"Modelo"));
+  $("#"+prefix+"Placa").oninput=e=>e.target.value=normalizePlate(e.target.value);
+  const vin=$("#"+prefix+"VinAutel");if(vin)vin.oninput=e=>e.target.value=String(e.target.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,17);
+}
 function fillVehicleFields(prefix,v){
   if(!v)return;
   const marcaSel=$("#"+prefix+"Marca"),modeloSel=$("#"+prefix+"Modelo");
@@ -166,11 +248,43 @@ function fillVehicleFields(prefix,v){
   modeloSel.innerHTML=modeloOptions(matchedMarca||"",v.modelo||"");
   if(v.modelo&&![...modeloSel.options].some(o=>o.value===v.modelo))modeloSel.insertAdjacentHTML("beforeend",`<option value="${esc(v.modelo)}">${esc(v.modelo)}</option>`);
   modeloSel.value=v.modelo||"";
-  [["Versao","versao"],["AnoFab","anoFabricacao"],["AnoMod","anoModelo"],["Motor","motor"],["CodMotor","codigoMotor"],["Combustivel","combustivel"],["Cambio","cambio"],["Chassi","chassi"],["Cor","cor"],["Fipe","fipe"]].forEach(([a,b])=>{const el=$("#"+prefix+a);if(el)el.value=v[b]||"";});
+  [["Versao","versao"],["AnoFab","anoFabricacao"],["AnoMod","anoModelo"],["Motor","motor"],["CodMotor","codigoMotor"],["Cilindradas","cilindradas"],["Potencia","potenciaCv"],["Combustivel","combustivel"],["Cambio","cambio"],["Chassi","chassi"],["VinAutel","vinAutel"],["Cor","cor"],["Fipe","fipe"],["FipeValor","fipeValor"],["FipeRef","fipeReferencia"]].forEach(([a,b])=>{const el=$("#"+prefix+a);if(el&&v[b]!=null&&v[b]!=="")el.value=v[b];});
 }
-function readVehicleFields(prefix){return {placa:normalizePlate($("#"+prefix+"Placa").value),marca:$("#"+prefix+"Marca").value,modelo:$("#"+prefix+"Modelo").value,versao:$("#"+prefix+"Versao").value.trim(),anoFabricacao:$("#"+prefix+"AnoFab").value.trim(),anoModelo:$("#"+prefix+"AnoMod").value.trim(),ano:[$("#"+prefix+"AnoFab").value.trim(),$("#"+prefix+"AnoMod").value.trim()].filter(Boolean).join("/"),motor:$("#"+prefix+"Motor").value.trim(),codigoMotor:$("#"+prefix+"CodMotor").value.trim(),combustivel:$("#"+prefix+"Combustivel").value.trim(),cambio:$("#"+prefix+"Cambio").value.trim(),chassi:$("#"+prefix+"Chassi").value.trim().toUpperCase(),cor:$("#"+prefix+"Cor").value.trim(),fipe:$("#"+prefix+"Fipe").value.trim()};}
+function readVehicleFields(prefix){
+  const f=(s)=>$("#"+prefix+s)?.value?.trim?.()||"";
+  return {placa:normalizePlate(f("Placa")),marca:f("Marca"),modelo:f("Modelo"),versao:f("Versao"),anoFabricacao:f("AnoFab"),anoModelo:f("AnoMod"),ano:[f("AnoFab"),f("AnoMod")].filter(Boolean).join("/"),motor:f("Motor"),codigoMotor:f("CodMotor"),cilindradas:f("Cilindradas"),potenciaCv:f("Potencia"),combustivel:f("Combustivel"),cambio:f("Cambio"),chassi:f("Chassi").toUpperCase(),vinAutel:f("VinAutel").toUpperCase(),cor:f("Cor"),fipe:f("Fipe"),fipeValor:Number(f("FipeValor")||0),fipeReferencia:f("FipeRef")};
+}
+function openFipeChoice(prefix,data){
+  const opts=data.opcoesFipe||[];if(opts.length<2)return;
+  const html=`<p>A consulta encontrou mais de uma versão FIPE possível. A opção marcada como principal já foi aplicada. Você pode trocar:</p><label>Versão FIPE<select id="fipeOptionSelect">${opts.map((x,i)=>`<option value="${i}" ${x.principal?"selected":""}>${esc(x.modelo||"Versão")} • ${esc(String(x.anoModelo||""))} • ${esc(x.codigoFipe||"")}${x.valor?" • "+money(x.valor):""}</option>`).join("")}</select></label>`;
+  openAuthModal("Escolher versão FIPE",html,"Aplicar",close=>{const idx=Number($("#fipeOptionSelect").value||0),o=opts[idx]||opts[0];fillVehicleFields(prefix,{...data,marca:o.marca||data.marca,modelo:o.modelo||data.modelo,anoFabricacao:o.anoFabricacao||data.anoFabricacao,anoModelo:o.anoModelo||data.anoModelo,combustivel:o.combustivel||data.combustivel,fipe:o.codigoFipe||data.fipe,fipeValor:o.valor??data.fipeValor,fipeReferencia:o.mesReferencia||data.fipeReferencia});close();});
+}
 function bindPlateLookup(prefix){
-  $("#"+prefix+"Lookup").onclick=async()=>{const status=$("#"+prefix+"PlateStatus"),plate=normalizePlate($("#"+prefix+"Placa").value);status.textContent="Consultando...";status.className="plate-status";try{const data=await lookupVehiclePlate(plate);fillVehicleFields(prefix,data);status.textContent="Dados encontrados. Confira antes de salvar.";status.classList.add("ok");}catch(err){if(err.message==="PLATE_API_NOT_CONFIGURED"){status.textContent="Consulta por placa pronta, mas falta configurar o provedor em integrations.js.";openAuthModal("Consulta por placa",`<p>O cadastro já está preparado para preencher marca, modelo, versão, anos, motor, combustível, câmbio, chassi/VIN, cor e FIPE a partir da placa.</p><p>Para consultar dados reais precisamos conectar um provedor autorizado de dados veiculares. Configure o endpoint e a credencial em <code>integrations.js</code>.</p><p><b>Para cotação precisa de peças, a placa ajuda a identificar o veículo, mas VIN/chassi, código do motor e código OEM continuam sendo as referências mais seguras.</b></p>`,`Fechar`);}else status.textContent=err.message==="PLACA_INVALIDA"?"Informe uma placa com 7 caracteres.":"Não foi possível consultar a placa. Confira o provedor/conexão.";status.classList.add("error");}};
+  $("#"+prefix+"Lookup").onclick=async()=>{
+    const status=$("#"+prefix+"PlateStatus"),plate=normalizePlate($("#"+prefix+"Placa").value);
+    status.textContent="Consultando Supabase / APIBrasil...";status.className="plate-status";
+    try{
+      const data=await lookupVehiclePlate(plate);fillVehicleFields(prefix,data);
+      const hom=data.homologacao?`<strong>HOMOLOGAÇÃO:</strong> dados de teste; não use para cotação real. `:"";
+      const multi=(data.opcoesFipe||[]).length>1?`<button type="button" class="mini-inline-btn" id="${prefix}FipeOptions">Escolher versão FIPE (${data.opcoesFipe.length})</button>`:"";
+      status.innerHTML=`${hom}Dados encontrados. Confira antes de salvar. ${multi}`;status.classList.add(data.homologacao?"warn":"ok");
+      const b=$("#"+prefix+"FipeOptions");if(b)b.onclick=()=>openFipeChoice(prefix,data);
+    }catch(err){
+      if(err.message==="SUPABASE_KEY_NOT_CONFIGURED"){
+        status.textContent="Falta a chave publicável do Supabase. Abra Configurações no painel administrador e cole a chave sb_publishable_...";status.classList.add("error");
+      }else if(err.message==="PLATE_API_NOT_CONFIGURED"){
+        status.textContent="Endpoint da consulta por placa não configurado.";status.classList.add("error");
+      }else if(err.message==="PLACA_INVALIDA"){
+        status.textContent="Informe uma placa com 7 caracteres.";status.classList.add("error");
+      }else if(err.status===401){
+        status.textContent="A função recusou a autenticação. Confira a chave publicável do Supabase.";status.classList.add("error");
+      }else if(err.status===403){
+        status.textContent="A API recusou a consulta. Confira liberação do serviço/saldo.";status.classList.add("error");
+      }else{
+        status.textContent=`Não foi possível consultar a placa${err.detail?": "+err.detail:"."}`;status.classList.add("error");
+      }
+    }
+  };
 }
 function openServiceProcedure(service){
   if(!service)return; const pr=window.getServiceProcedure?window.getServiceProcedure(service):null; if(!pr)return;
@@ -184,7 +298,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.5</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.6</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
@@ -313,16 +427,20 @@ function renderVeiculos(){
   $$('[data-vehicle-catalog]').forEach(b=>b.onclick=()=>renderVehicleCatalog(Number(b.dataset.vehicleCatalog),b.dataset.return));
 }
 function renderVehicleCatalog(id,returnView="veiculos"){
-  const v=store.get("macro_veiculos").find(x=>x.id===id);if(!v)return render(returnView);
+  const all=store.get("macro_veiculos"),v=all.find(x=>x.id===id);if(!v)return render(returnView);
   showOnly(moduleView);moduleTitle.textContent=`${v.marca} ${v.modelo}`;moduleSubtitle.textContent="Catálogo técnico do veículo";
   const hist=store.get("macro_historico").filter(h=>(v.placa&&h.placa===v.placa)||(!v.placa&&h.veiculo===`${v.marca} ${v.modelo}`));
-  moduleContent.innerHTML=`<div class="vehicle-tech-card"><div class="vehicle-tech-head"><div><strong>${esc(v.marca)} ${esc(v.modelo)} ${esc(v.versao||"")}</strong><span>${esc(v.ano||"")} ${esc(v.motor||"")}</span></div><span class="plate-chip">${esc(v.placa||"SEM PLACA")}</span></div><div class="vehicle-spec-grid"><span><b>Motor</b>${esc(v.motor||"—")}</span><span><b>Código motor</b>${esc(v.codigoMotor||"—")}</span><span><b>Combustível</b>${esc(v.combustivel||"—")}</span><span><b>Câmbio</b>${esc(v.cambio||"—")}</span><span><b>VIN/Chassi</b>${esc(v.chassi||"—")}</span><span><b>FIPE</b>${esc(v.fipe||"—")}</span></div><div class="notice">Para cotar peça com precisão, use placa para identificar o veículo e confirme aplicação pelo VIN/chassi, código do motor e código OEM da peça.</div></div>
+  const vinPreferencial=v.vinAutel||v.chassi||"";
+  moduleContent.innerHTML=`<div class="vehicle-tech-card"><div class="vehicle-tech-head"><div><strong>${esc(v.marca)} ${esc(v.modelo)} ${esc(v.versao||"")}</strong><span>${esc(v.ano||"")} ${esc(v.motor||"")}</span></div><span class="plate-chip">${esc(v.placa||"SEM PLACA")}</span></div><div class="vehicle-spec-grid"><span><b>Motor</b>${esc(v.motor||"—")}</span><span><b>Código motor</b>${esc(v.codigoMotor||"—")}</span><span><b>Cilindrada</b>${esc(v.cilindradas?(v.cilindradas+" cm³"):"—")}</span><span><b>Potência</b>${esc(v.potenciaCv?(v.potenciaCv+" cv"):"—")}</span><span><b>Combustível</b>${esc(v.combustivel||"—")}</span><span><b>Câmbio</b>${esc(v.cambio||"—")}</span><span><b>VIN Autel</b>${esc(v.vinAutel||"—")}</span><span><b>Chassi parcial</b>${esc(v.chassi||"—")}</span><span><b>FIPE</b>${esc(v.fipe||"—")}</span><span><b>Valor FIPE</b>${v.fipeValor?money(v.fipeValor):"—"}</span><span><b>Referência</b>${esc(v.fipeReferencia||"—")}</span><span><b>Cor</b>${esc(v.cor||"—")}</span></div><div class="notice">Identificação prioritária para cotação: <b>${esc(vinPreferencial||"VIN ainda não informado")}</b>. Para aplicação exata da peça, confirme VIN completo, código do motor e/ou código OEM.</div></div>
+  <div class="catalog-section"><h3>🔎 Identificação pelo Autel DS900BT</h3><div class="form-grid"><label>VIN completo (AutoVIN)<input id="catalogAutelVin" maxlength="17" value="${esc(v.vinAutel||"")}" placeholder="Cole o VIN lido pelo scanner"></label><button class="secondary-btn" id="saveCatalogAutelVin">Salvar VIN do Autel</button><div class="notice">A consulta por placa pode retornar chassi mascarado. O VIN completo lido pelo AutoVIN do Autel fica salvo como referência prioritária para peças e diagnóstico.</div></div></div>
   <div class="catalog-section"><h3>🔩 Peças / cotação</h3><input id="vehPartSearch" class="catalog-search" placeholder="Buscar peça: pivô, bomba, sensor, filtro..."><div id="vehPartList" class="section-list"></div></div>
   <div class="catalog-section"><h3>🛠️ Serviços / procedimentos</h3><input id="vehSrvSearch" class="catalog-search" placeholder="Buscar serviço ou ferramenta..."><div id="vehSrvList" class="section-list"></div></div>
   <div class="catalog-section"><h3>🕘 Histórico deste veículo</h3><div class="section-list">${hist.length?hist.slice(0,20).map(h=>`<div class="list-card"><strong>${esc(h.tipoDocumento||"Registro")}</strong><span class="muted">${esc(h.data||"")} • ${money(h.total||0)}</span></div>`).join(""):`<div class="empty">Ainda não há documentos vinculados a este veículo.</div>`}</div></div>`;
   $("#backBtn").onclick=()=>render(returnView);
-  const partDraw=()=>{const q=$("#vehPartSearch").value.trim().toLowerCase();const terms=`${v.marca} ${v.modelo} ${v.versao||""} ${v.motor||""} ${v.codigoMotor||""}`.toLowerCase();let parts=pecasDisponiveis().filter(p=>!q||`${p.nome} ${p.categoria||""} ${p.subcategoria||""} ${p.aplicacao||""}`.toLowerCase().includes(q));if(!q)parts=parts.filter(p=>p.aplicacao&&terms.split(/\s+/).some(t=>t.length>2&&String(p.aplicacao).toLowerCase().includes(t)));$("#vehPartList").innerHTML=parts.length?parts.slice(0,35).map(p=>{const app=String(p.aplicacao||"");const compatible=app&&terms.split(/\s+/).some(t=>t.length>2&&app.toLowerCase().includes(t));return `<div class="list-card"><div class="split"><div><strong>${esc(p.nome)}</strong><span class="muted">${esc(p.categoria||"")} • ${esc(p.subcategoria||"")}</span></div><b>${p.valor?money(p.valor):"—"}</b></div><span class="fit-badge ${compatible?"fit-known":"fit-check"}">${compatible?"Aplicação cadastrada":"Confirmar VIN/OEM"}</span>${app?`<div class="muted small-line">Aplicação: ${esc(app)}</div>`:""}</div>`;}).join(""):`<div class="empty">Digite o nome da peça para pesquisar no catálogo.</div>`;};
-  const srvDraw=()=>{const q=$("#vehSrvSearch").value.trim().toLowerCase();if(!q){$("#vehSrvList").innerHTML=`<div class="empty">Digite um serviço, sistema ou ferramenta para pesquisar.</div>`;return;}const rows=servicosDisponiveis().filter(s=>{const pr=getServiceProcedure(s);return `${s.nome} ${s.tipo} ${s.subcategoria||""} ${pr.tools.join(" ")} ${pr.steps.join(" ")}`.toLowerCase().includes(q)});$("#vehSrvList").innerHTML=rows.slice(0,30).map(s=>`<div class="list-card service-result-card"><div><strong>${esc(s.nome)}</strong><span class="muted">${esc(s.tipo)} • ${esc(s.subcategoria||"")} • ${s.tempo} h</span></div><button class="secondary-btn" data-proc="${s.id}">Procedimento</button></div>`).join("")||`<div class="empty">Nenhum serviço encontrado.</div>`;$$('[data-proc]').forEach(b=>b.onclick=()=>openServiceProcedure(servicosDisponiveis().find(s=>String(s.id)===b.dataset.proc)));};
+  $("#catalogAutelVin").oninput=e=>e.target.value=String(e.target.value||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,17);
+  $("#saveCatalogAutelVin").onclick=()=>{const vin=$("#catalogAutelVin").value.trim().toUpperCase();if(vin&&vin.length<11)return alert("Confira o VIN informado.");const row=all.find(x=>x.id===id);if(row){row.vinAutel=vin;row.vinFonte=vin?"Autel DS900BT":"";row.vinAtualizadoEm=vin?new Date().toLocaleString("pt-BR"):"";store.set("macro_veiculos",all);alert("VIN do Autel salvo.");renderVehicleCatalog(id,returnView);}};
+  const partDraw=()=>{const q=$("#vehPartSearch").value.trim().toLowerCase();const terms=`${v.marca} ${v.modelo} ${v.versao||""} ${v.motor||""} ${v.codigoMotor||""} ${v.vinAutel||""}`.toLowerCase();let parts=pecasDisponiveis().filter(p=>!q||`${p.nome} ${p.categoria||""} ${p.subcategoria||""} ${p.aplicacao||""}`.toLowerCase().includes(q));if(!q)parts=parts.filter(p=>p.aplicacao&&terms.split(/\s+/).some(t=>t.length>2&&String(p.aplicacao).toLowerCase().includes(t)));$("#vehPartList").innerHTML=parts.length?parts.slice(0,35).map(p=>{const app=String(p.aplicacao||"");const compatible=app&&terms.split(/\s+/).some(t=>t.length>2&&app.toLowerCase().includes(t));return `<div class="list-card"><div class="split"><div><strong>${esc(p.nome)}</strong><span class="muted">${esc(p.categoria||"")} • ${esc(p.subcategoria||"")}</span></div><b>${p.valor?money(p.valor):"—"}</b></div>${app?`<span class="muted">Aplicação cadastrada: ${esc(app)}</span>`:""}<span class="compat-chip ${compatible?"match":"check"}">${compatible?"Possível correspondência":"Confirmar pelo VIN/OEM"}</span></div>`;}).join(""):`<div class="empty">Digite o nome da peça para pesquisar. A biblioteca é genérica; confirme aplicação pelo VIN/OEM.</div>`;};
+  const srvDraw=()=>{const q=$("#vehSrvSearch").value.trim().toLowerCase();if(!q){$("#vehSrvList").innerHTML=`<div class="empty">Digite o serviço, sistema ou ferramenta para pesquisar.</div>`;return;}const rows=servicosDisponiveis().filter(s=>{const pr=getServiceProcedure(s);return `${s.nome} ${s.tipo} ${s.subcategoria||""} ${pr.tools.join(" ")} ${pr.steps.join(" ")}`.toLowerCase().includes(q);});$("#vehSrvList").innerHTML=rows.length?rows.slice(0,30).map(s=>`<div class="list-card service-result-card"><div><strong>${esc(s.nome)}</strong><span class="muted">${esc(s.tipo)} • ${esc(s.subcategoria||"")} • ⏱ ${s.tempo} h</span></div><button class="secondary-btn" data-proc="${s.id}">Procedimento</button></div>`).join(""):`<div class="empty">Nenhum serviço encontrado.</div>`;$$('[data-proc]').forEach(b=>b.onclick=()=>openServiceProcedure(servicosDisponiveis().find(s=>String(s.id)===b.dataset.proc)));};
   $("#vehPartSearch").oninput=partDraw;$("#vehSrvSearch").oninput=srvDraw;partDraw();srvDraw();
 }
 
@@ -373,7 +491,26 @@ function renderHistorico(){const h=store.get("macro_historico");moduleContent.in
 function renderRelatorios(){const req=store.get("macro_solicitacoes"),h=store.get("macro_historico"),orc=h.filter(x=>x.tipoDocumento!=="manutencao"),man=h.filter(x=>x.tipoDocumento==="manutencao");moduleContent.innerHTML=`<div class="section-list"><div class="list-card split"><strong>Clientes</strong><b>${store.get("macro_clientes").length}</b></div><div class="list-card split"><strong>Solicitações pendentes</strong><b>${req.filter(x=>x.status==="pendente").length}</b></div><div class="list-card split"><strong>Agendadas</strong><b>${req.filter(x=>x.status==="aceito").length}</b></div><div class="list-card split"><strong>Orçamentos</strong><b>${orc.length}</b></div><div class="list-card split"><strong>Relatórios de manutenção</strong><b>${man.length}</b></div><div class="total-box"><div class="total">${money(orc.reduce((a,b)=>a+Number(b.total||0),0))}</div><div class="muted">Soma dos orçamentos salvos</div></div></div>`;}
 
 let deferredInstallPrompt=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstallPrompt=e;});
-function renderConfig(){moduleContent.innerHTML=`<div class="form-grid"><div class="notice">Horários padrão: 08:00, 09:00, 10:00, 11:00, 13:00, 14:00, 15:00 e 16:00. Solicitações pendentes e aceitas bloqueiam automaticamente o intervalo conforme a duração do serviço.</div><div class="notice">A biblioteca inclui veículos nacionais/importados, peças mecânicas/elétricas e serviços organizados por sistema. Confirme sempre a aplicação exata da peça pelo chassi/VIN ou código OEM.</div><button class="primary-btn" id="installApp">Instalar Macroservice no celular</button><button class="danger-btn" id="clearData">Limpar dados de demonstração</button></div>`;$("#installApp").onclick=async()=>{if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;}else alert("Se o app já estiver instalado ou o navegador não liberar o instalador, abra o menu ⋮ do Chrome e procure ‘Instalar app’ ou ‘Adicionar à tela inicial’. Atualize a página uma vez após publicar esta versão.");};$("#clearData").onclick=()=>{if(confirm("Apagar dados locais deste aparelho?")){["macro_clientes","macro_veiculos","macro_servicos","macro_pecas","macro_servicos_custom","macro_pecas_custom","macro_historico","macro_solicitacoes","macro_catalog_migrated"].forEach(k=>localStorage.removeItem(k));clearSession();init();}};}
+function renderConfig(){
+  const sup=supabaseIntegration();
+  moduleContent.innerHTML=`<div class="form-grid">
+    <div class="notice">Horários padrão: 08:00, 09:00, 10:00, 11:00, 13:00, 14:00, 15:00 e 16:00. Solicitações pendentes e aceitas bloqueiam automaticamente o intervalo conforme a duração do serviço.</div>
+    <div class="notice">A biblioteca inclui veículos nacionais/importados, peças mecânicas/elétricas e serviços organizados por sistema. Confirme sempre a aplicação exata da peça pelo VIN/chassi ou código OEM.</div>
+    <details class="integration-settings" open><summary>☁️ Integração Supabase / consulta por placa</summary><div class="form-grid integration-settings-body">
+      <label>URL do projeto Supabase<input id="cfgSupabaseUrl" value="${esc(sup.url||"")}" placeholder="https://xxxx.supabase.co"></label>
+      <label>Chave publicável Supabase<input id="cfgSupabaseKey" type="password" value="${esc(sup.publishableKey||"")}" placeholder="sb_publishable_..."></label>
+      <div class="notice">Use somente a <b>Publishable Key</b>. O token da APIBrasil permanece protegido em Edge Functions → Secrets como <b>APIBRASIL_TOKEN</b>.</div>
+      <div class="actions"><button class="primary-btn" id="saveSupabaseConfig">Salvar integração</button><button class="secondary-btn" id="testSupabasePlate">Testar consulta ABC1234</button></div><div class="plate-status" id="cfgSupabaseStatus"></div>
+    </div></details>
+    <button class="primary-btn" id="installApp">Instalar Macroservice no celular</button>
+    <button class="danger-btn" id="clearData">Limpar dados de demonstração</button>
+  </div>`;
+  $("#saveSupabaseConfig").onclick=()=>{const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(!url||!publishableKey)return alert("Informe a URL e a chave publicável do Supabase.");store.set("macro_supabase_config",{url,publishableKey});$("#cfgSupabaseStatus").textContent="Integração salva neste aparelho.";$("#cfgSupabaseStatus").className="plate-status ok";};
+  $("#testSupabasePlate").onclick=async()=>{const status=$("#cfgSupabaseStatus");const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(url&&publishableKey)store.set("macro_supabase_config",{url,publishableKey});status.textContent="Testando...";status.className="plate-status";try{const d=await lookupVehiclePlate("ABC1234");status.textContent=`Conexão OK • ${d.marca||"Veículo"} ${d.modelo||""}${d.homologacao?" • HOMOLOGAÇÃO":""}`;status.classList.add(d.homologacao?"warn":"ok");}catch(e){status.textContent=e.message==="SUPABASE_KEY_NOT_CONFIGURED"?"Informe e salve a chave publicável.":`Falha no teste${e.status?" (HTTP "+e.status+")":""}.`;status.classList.add("error");}};
+  $("#installApp").onclick=async()=>{if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;}else alert("Se o app já estiver instalado ou o navegador não liberar o instalador, abra o menu ⋮ do Chrome e procure ‘Instalar app’ ou ‘Adicionar à tela inicial’. Atualize a página uma vez após publicar esta versão.");};
+  $("#clearData").onclick=()=>{if(confirm("Apagar dados locais deste aparelho?")){["macro_clientes","macro_veiculos","macro_servicos","macro_pecas","macro_servicos_custom","macro_pecas_custom","macro_historico","macro_solicitacoes","macro_catalog_migrated"].forEach(k=>localStorage.removeItem(k));clearSession();init();}};
+}
+
 
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(console.error));
 init();

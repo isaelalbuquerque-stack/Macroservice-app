@@ -1,21 +1,25 @@
-/* Macroservice App V5.5 — integrações externas
-   Preencha estes dados para ativar os recursos online.
-   Não coloque senhas privadas de servidor neste arquivo público do GitHub Pages. */
+/* Macroservice App V5.6 — integrações externas
+   IMPORTANTE:
+   - A chave publicável do Supabase pode ser usada no front-end.
+   - NUNCA coloque APIBRASIL_TOKEN, service_role ou qualquer chave secreta aqui.
+   - O token da APIBrasil permanece protegido em Supabase > Edge Functions > Secrets. */
 window.MACROSERVICE_INTEGRATIONS = {
   google: {
-    // Client ID OAuth 2.0 do tipo "Aplicativo da Web".
-    // Ex.: 1234567890-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+    // Client ID OAuth 2.0 do tipo "Aplicativo da Web" (opcional por enquanto).
     clientId: ""
   },
+
+  supabase: {
+    // Projeto criado para o Macroservice.
+    url: "https://ydimkvennwdyvizornpr.supabase.co",
+
+    // Cole aqui SOMENTE a Publishable Key (sb_publishable_...).
+    // Ela também pode ser salva pela tela Configurações do administrador.
+    publishableKey: ""
+  },
+
   plateLookup: {
-    // Endpoint de um provedor de consulta veicular autorizado.
-    // Use {plate} no endereço para o app substituir pela placa.
-    // Ex.: https://api.seuprovedor.com/veiculo/{plate}
-    endpoint: "",
-    // Opcional. Use somente tokens próprios para front-end, quando o provedor permitir.
-    token: "",
-    tokenHeader: "Authorization",
-    tokenPrefix: "Bearer ",
-    additionalHeaders: {}
+    mode: "supabase-edge",
+    endpoint: "https://ydimkvennwdyvizornpr.supabase.co/functions/v1/consultar-placa"
   }
 };
