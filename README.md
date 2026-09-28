@@ -1,4 +1,4 @@
-# Macroservice App V5.4
+# Macroservice App V5.5
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -31,8 +31,40 @@ A biblioteca de peças é genérica. A compatibilidade exata deve ser confirmada
 - Opção “Lembrar de mim” para cliente e administrador.
 
 
-## Novidades V5.4
-- Logo principal atualizado para a nova arte com fundo tecnológico em azul profundo.
-- Ícone do app atualizado sem a borda duplicada anterior.
-- Imagem do topo da tela de login atualizada automaticamente via `icon-512.png`.
-- Service worker atualizado para forçar renovação do cache da nova identidade visual.
+## Novidades V5.3
+- Tela de login refinada seguindo o modelo visual enviado pelo usuário.
+- Campos de usuário, telefone, e-mail e senha com ícones integrados.
+- Botão de visualizar/ocultar senha preservado e melhor posicionado.
+- Recuperação de senha em janela própria, sem prompts soltos do navegador.
+- Login com tecla Enter e mensagens de erro dentro da tela.
+- Opção “Lembrar de mim” reorganizada junto ao acesso de recuperação.
+- Botão Google redesenhado; não simula autenticação Google local. A conexão real exige Firebase/Supabase e credenciais.
+- Rodapé interno da tela de login com MACROSERVICE, Inteligência Automotiva, Juruti - PA e versão.
+- Melhor adaptação a telas pequenas.
+
+
+## Novidades V5.5
+- Login Google preparado com Google Identity Services e botão oficial renderizado pelo Google quando o Client ID estiver configurado.
+- `integrations.js` centraliza o Client ID Google e a configuração do provedor de consulta por placa.
+- Cadastro de veículo ampliado: placa, marca, modelo, versão, ano fabricação/modelo, motor, código do motor, combustível, câmbio, VIN/chassi, cor e FIPE.
+- Botão “Consultar placa” preenche automaticamente os campos quando um provedor de dados veiculares estiver configurado.
+- Cada veículo ganhou “Abrir catálogo”, com busca de peças, busca de serviços/procedimentos e histórico do próprio veículo.
+- Catálogo de Serviços não abre mais centenas de itens de uma vez; os resultados aparecem somente por busca/filtro.
+- Busca de serviços também pesquisa ferramentas e etapas dos procedimentos.
+- Todos os serviços recebem um procedimento de referência com ferramentas, segurança/preparação, passo a passo, conferências finais e tempo estimado.
+
+## Ativar login Google
+1. No Google Cloud Console crie uma credencial OAuth 2.0 do tipo **Aplicativo da Web**.
+2. Adicione `https://isaelalbuquerque-stack.github.io` em **Origens JavaScript autorizadas**.
+3. Copie o Client ID e cole em `integrations.js` no campo `google.clientId`.
+4. Publique novamente no GitHub Pages e recarregue o app.
+
+O login Google identifica o cliente no navegador. Para permissões de servidor, dados compartilhados em tempo real e segurança multiusuário, a credencial Google deve ser validada por um backend/Firebase/Supabase.
+
+## Ativar consulta por placa
+A consulta por placa depende de um provedor autorizado de dados veiculares. Configure `plateLookup.endpoint` e, quando exigido pelo provedor, o token em `integrations.js`. O app tenta normalizar campos comuns retornados pela API.
+
+A placa é útil para identificar marca/modelo/ano/versão, mas a aplicação exata de peças deve ser confirmada também por VIN/chassi, código do motor e/ou código OEM.
+
+## Procedimentos técnicos
+Os procedimentos incorporados são referências operacionais para organizar o trabalho da oficina. Torques, folgas, fluidos, capacidades, ferramentas especiais, sequências e boletins devem ser conferidos no manual técnico específico do veículo antes da execução.
