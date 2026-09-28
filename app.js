@@ -81,10 +81,13 @@ function supabaseIntegration(){
 function plateIntegration(){
   const base=window.MACROSERVICE_INTEGRATIONS?.plateLookup || {};
   const sup=supabaseIntegration();
+  const savedEndpoint=sup.url
+    ? sup.url.replace(/\/$/,"")+"/functions/v1/consultar-placa"
+    : "";
   return {
     ...base,
-    endpoint:base.endpoint || (sup.url?sup.url.replace(/\/$/,"")+"/functions/v1/consultar-placa":""),
-    publishableKey:base.publishableKey || sup.publishableKey || ""
+    endpoint:savedEndpoint || base.endpoint || "",
+    publishableKey:sup.publishableKey || base.publishableKey || ""
   };
 }
 function normalizePlate(plate){ return String(plate||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,7); }
@@ -299,7 +302,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.8</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.9</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>

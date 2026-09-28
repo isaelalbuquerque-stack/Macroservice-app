@@ -1,4 +1,4 @@
-/* Macroservice App V5.6 — integrações externas
+/* Macroservice App V5.9 — integrações externas
    IMPORTANTE:
    - A chave publicável do Supabase pode ser usada no front-end.
    - NUNCA coloque APIBRASIL_TOKEN, service_role ou qualquer chave secreta aqui.
@@ -11,7 +11,7 @@ window.MACROSERVICE_INTEGRATIONS = {
 
   supabase: {
     // Projeto criado para o Macroservice.
-    url: "https://ydimkvennwdyvizornpr.supabase.co",
+    url: "https://ydimkvennwdyyizornpr.supabase.co",
 
     // Cole aqui SOMENTE a Publishable Key (sb_publishable_...).
     // Ela também pode ser salva pela tela Configurações do administrador.
@@ -20,6 +20,6 @@ window.MACROSERVICE_INTEGRATIONS = {
 
   plateLookup: {
     mode: "supabase-edge",
-    endpoint: "https://ydimkvennwdyvizornpr.supabase.co/functions/v1/consultar-placa"
+    endpoint: ""
   }
 };

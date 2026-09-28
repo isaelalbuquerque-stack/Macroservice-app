@@ -1,4 +1,4 @@
-# Macroservice App V5.8
+# Macroservice App V5.9
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -104,3 +104,12 @@ Nunca coloque `APIBRASIL_TOKEN`, `service_role` ou `sb_secret_...` no GitHub Pag
 - Evita que a V5.6 antiga continue presa no cache do celular.
 - Mantém a chamada da Edge Function usando `apikey: sb_publishable_...`.
 - Mostra o erro técnico real da consulta (HTTP/detalhe) caso ainda haja falha.
+
+
+## Correção V5.9 — endpoint Supabase
+A V5.8 ainda continha um endpoint antigo/incorreto em `integrations.js`.
+Agora a URL salva em **Configurações > URL do projeto Supabase** tem prioridade e o app monta automaticamente:
+`<URL_DO_PROJETO>/functions/v1/consultar-placa`.
+
+URL base configurada:
+`https://ydimkvennwdyyizornpr.supabase.co`
