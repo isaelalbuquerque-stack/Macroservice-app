@@ -1,12 +1,12 @@
-const CACHE_NAME="macroservice-v5.9";
+const CACHE_NAME="macroservice-v5.10";
 const ASSETS=[
   "./",
   "./index.html",
-  "./styles.css?v=5.9",
-  "./integrations.js?v=5.9",
-  "./catalog.js?v=5.9",
-  "./procedures.js?v=5.9",
-  "./app.js?v=5.9",
+  "./styles.css?v=5.10",
+  "./integrations.js?v=5.10",
+  "./catalog.js?v=5.10",
+  "./procedures.js?v=5.10",
+  "./app.js?v=5.10",
   "./logo.png",
   "./icon-192.png",
   "./icon-512.png",

@@ -1,4 +1,4 @@
-# Macroservice App V5.9
+# Macroservice App V5.10
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -113,3 +113,10 @@ Agora a URL salva em **Configurações > URL do projeto Supabase** tem prioridad
 
 URL base configurada:
 `https://ydimkvennwdyyizornpr.supabase.co`
+
+
+## V5.10 — correção do navegador
+- Consulta de homologação usa um POST simples (`text/plain`) sem header `apikey`.
+- Isso elimina o preflight CORS que estava falhando no Chrome.
+- A Edge Function continua mantendo `APIBRASIL_TOKEN` apenas no Supabase.
+- Modo de consulta real permanece bloqueado até adicionarmos Supabase Auth.

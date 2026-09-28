@@ -196,14 +196,13 @@ async function lookupVehiclePlate(plate){
 
   let res;
   if(cfg.mode==="supabase-edge" || cfg.endpoint.includes("supabase.co/functions/v1/")){
-    const key=String(cfg.publishableKey||"").trim();
-    if(!key || key.includes("COLE_"))throw new Error("SUPABASE_KEY_NOT_CONFIGURED");
+    // V5.10: requisição simples para evitar preflight/CORS no navegador.
+    // Enquanto a Edge Function estiver em homologação, não envia API key.
     res=await fetch(cfg.endpoint,{
       method:"POST",
       headers:{
-        "Content-Type":"application/json",
-        "Accept":"application/json",
-        "apikey":key
+        "Content-Type":"text/plain;charset=UTF-8",
+        "Accept":"application/json"
       },
       body:JSON.stringify({placa:clean})
     });
@@ -302,7 +301,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.9</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.10</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
@@ -509,8 +508,8 @@ function renderConfig(){
     <button class="primary-btn" id="installApp">Instalar Macroservice no celular</button>
     <button class="danger-btn" id="clearData">Limpar dados de demonstração</button>
   </div>`;
-  $("#saveSupabaseConfig").onclick=()=>{const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(!url||!publishableKey)return alert("Informe a URL e a chave publicável do Supabase.");store.set("macro_supabase_config",{url,publishableKey});$("#cfgSupabaseStatus").textContent="Integração salva neste aparelho.";$("#cfgSupabaseStatus").className="plate-status ok";};
-  $("#testSupabasePlate").onclick=async()=>{const status=$("#cfgSupabaseStatus");const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(url&&publishableKey)store.set("macro_supabase_config",{url,publishableKey});status.textContent="Testando...";status.className="plate-status";try{const d=await lookupVehiclePlate("ABC1234");status.textContent=`Conexão OK • ${d.marca||"Veículo"} ${d.modelo||""}${d.homologacao?" • HOMOLOGAÇÃO":""}`;status.classList.add(d.homologacao?"warn":"ok");}catch(e){if(e.message==="SUPABASE_KEY_NOT_CONFIGURED")status.textContent="Informe e salve a chave publicável.";else if(e instanceof TypeError)status.textContent="Falha de rede/CORS. Desative 'Verificar JWT com segredo legado' na Edge Function e tente novamente.";else status.textContent=`Falha no teste${e.status?" (HTTP "+e.status+")":""}${e.detail?": "+e.detail:"."}`;status.classList.add("error");}};
+  $("#saveSupabaseConfig").onclick=()=>{const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(!url)return alert("Informe a URL do projeto Supabase.");store.set("macro_supabase_config",{url,publishableKey});$("#cfgSupabaseStatus").textContent="Integração salva neste aparelho.";$("#cfgSupabaseStatus").className="plate-status ok";};
+  $("#testSupabasePlate").onclick=async()=>{const status=$("#cfgSupabaseStatus");const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(url)store.set("macro_supabase_config",{url,publishableKey});status.textContent="Testando...";status.className="plate-status";try{const d=await lookupVehiclePlate("ABC1234");status.textContent=`Conexão OK • ${d.marca||"Veículo"} ${d.modelo||""}${d.homologacao?" • HOMOLOGAÇÃO":""}`;status.classList.add(d.homologacao?"warn":"ok");}catch(e){if(e instanceof TypeError)status.textContent="Falha de rede/CORS ao acessar a Edge Function.";else status.textContent=`Falha no teste${e.status?" (HTTP "+e.status+")":""}${e.detail?": "+e.detail:"."}`;status.classList.add("error");}};
   $("#installApp").onclick=async()=>{if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;}else alert("Se o app já estiver instalado ou o navegador não liberar o instalador, abra o menu ⋮ do Chrome e procure ‘Instalar app’ ou ‘Adicionar à tela inicial’. Atualize a página uma vez após publicar esta versão.");};
   $("#clearData").onclick=()=>{if(confirm("Apagar dados locais deste aparelho?")){["macro_clientes","macro_veiculos","macro_servicos","macro_pecas","macro_servicos_custom","macro_pecas_custom","macro_historico","macro_solicitacoes","macro_catalog_migrated"].forEach(k=>localStorage.removeItem(k));clearSession();init();}};
 }
