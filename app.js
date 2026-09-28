@@ -200,8 +200,7 @@ async function lookupVehiclePlate(plate){
       headers:{
         "Content-Type":"application/json",
         "Accept":"application/json",
-        "apikey":key,
-        "Authorization":`Bearer ${key}`
+        "apikey":key
       },
       body:JSON.stringify({placa:clean})
     });
@@ -280,8 +279,10 @@ function bindPlateLookup(prefix){
         status.textContent="A função recusou a autenticação. Confira a chave publicável do Supabase.";status.classList.add("error");
       }else if(err.status===403){
         status.textContent="A API recusou a consulta. Confira liberação do serviço/saldo.";status.classList.add("error");
+      }else if(err instanceof TypeError){
+        status.textContent="Falha de comunicação com a função. Confira se 'Verificar JWT com segredo legado' está DESATIVADO na Edge Function e se a chave publicável foi salva.";status.classList.add("error");
       }else{
-        status.textContent=`Não foi possível consultar a placa${err.detail?": "+err.detail:"."}`;status.classList.add("error");
+        status.textContent=`Falha na consulta${err.status?" (HTTP "+err.status+")":""}: ${err.detail||err.message||"erro desconhecido"}`;status.classList.add("error");
       }
     }
   };
@@ -298,7 +299,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.6</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.8</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
@@ -506,7 +507,7 @@ function renderConfig(){
     <button class="danger-btn" id="clearData">Limpar dados de demonstração</button>
   </div>`;
   $("#saveSupabaseConfig").onclick=()=>{const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(!url||!publishableKey)return alert("Informe a URL e a chave publicável do Supabase.");store.set("macro_supabase_config",{url,publishableKey});$("#cfgSupabaseStatus").textContent="Integração salva neste aparelho.";$("#cfgSupabaseStatus").className="plate-status ok";};
-  $("#testSupabasePlate").onclick=async()=>{const status=$("#cfgSupabaseStatus");const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(url&&publishableKey)store.set("macro_supabase_config",{url,publishableKey});status.textContent="Testando...";status.className="plate-status";try{const d=await lookupVehiclePlate("ABC1234");status.textContent=`Conexão OK • ${d.marca||"Veículo"} ${d.modelo||""}${d.homologacao?" • HOMOLOGAÇÃO":""}`;status.classList.add(d.homologacao?"warn":"ok");}catch(e){status.textContent=e.message==="SUPABASE_KEY_NOT_CONFIGURED"?"Informe e salve a chave publicável.":`Falha no teste${e.status?" (HTTP "+e.status+")":""}.`;status.classList.add("error");}};
+  $("#testSupabasePlate").onclick=async()=>{const status=$("#cfgSupabaseStatus");const url=$("#cfgSupabaseUrl").value.trim().replace(/\/$/,""),publishableKey=$("#cfgSupabaseKey").value.trim();if(url&&publishableKey)store.set("macro_supabase_config",{url,publishableKey});status.textContent="Testando...";status.className="plate-status";try{const d=await lookupVehiclePlate("ABC1234");status.textContent=`Conexão OK • ${d.marca||"Veículo"} ${d.modelo||""}${d.homologacao?" • HOMOLOGAÇÃO":""}`;status.classList.add(d.homologacao?"warn":"ok");}catch(e){if(e.message==="SUPABASE_KEY_NOT_CONFIGURED")status.textContent="Informe e salve a chave publicável.";else if(e instanceof TypeError)status.textContent="Falha de rede/CORS. Desative 'Verificar JWT com segredo legado' na Edge Function e tente novamente.";else status.textContent=`Falha no teste${e.status?" (HTTP "+e.status+")":""}${e.detail?": "+e.detail:"."}`;status.classList.add("error");}};
   $("#installApp").onclick=async()=>{if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;}else alert("Se o app já estiver instalado ou o navegador não liberar o instalador, abra o menu ⋮ do Chrome e procure ‘Instalar app’ ou ‘Adicionar à tela inicial’. Atualize a página uma vez após publicar esta versão.");};
   $("#clearData").onclick=()=>{if(confirm("Apagar dados locais deste aparelho?")){["macro_clientes","macro_veiculos","macro_servicos","macro_pecas","macro_servicos_custom","macro_pecas_custom","macro_historico","macro_solicitacoes","macro_catalog_migrated"].forEach(k=>localStorage.removeItem(k));clearSession();init();}};
 }

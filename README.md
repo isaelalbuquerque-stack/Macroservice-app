@@ -1,4 +1,4 @@
-# Macroservice App V5.6
+# Macroservice App V5.8
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -89,3 +89,18 @@ Os procedimentos incorporados são referências operacionais para organizar o tr
 5. Para produção, adicione saldo no provedor e altere conscientemente a Edge Function para `homolog: false`.
 
 Nunca coloque `APIBRASIL_TOKEN`, `service_role` ou `sb_secret_...` no GitHub Pages.
+
+
+## Correção V5.7 — consulta de placa no navegador
+- Corrigido o uso da nova `sb_publishable_...`: ela agora é enviada somente no header `apikey`.
+- A Edge Function valida a Publishable Key dentro do próprio código.
+- Para funcionar no navegador, em **Edge Functions > consultar-placa > Configurações**, deixe **Verificar JWT com segredo legado DESATIVADO**.
+- O token `APIBRASIL_TOKEN` continua somente nos Secrets do Supabase.
+- Mensagens de erro de rede/CORS foram melhoradas.
+
+
+## V5.8
+- Força o navegador/GitHub Pages a carregar os arquivos JavaScript novos com `?v=5.8`.
+- Evita que a V5.6 antiga continue presa no cache do celular.
+- Mantém a chamada da Edge Function usando `apikey: sb_publishable_...`.
+- Mostra o erro técnico real da consulta (HTTP/detalhe) caso ainda haja falha.
