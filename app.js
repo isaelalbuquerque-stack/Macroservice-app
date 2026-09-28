@@ -49,102 +49,128 @@ function migrateLegacyData(){
   store.set("macro_catalog_migrated",true);
 }
 
-function authFieldIcon(kind){
-  const icons={
-    user:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0"/></svg>`,
-    lock:`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>`,
-    phone:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h3l1 5-2 1a15 15 0 0 0 6 6l1-2 5 1v3c0 2-2 4-4 4C9 20 4 15 3 7c0-2 2-4 4-4Z"/></svg>`,
-    mail:`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>`
-  };
-  return icons[kind]||icons.user;
-}
-function openAuthModal(title, bodyHtml, submitLabel="Fechar", onSubmit=null){
-  document.querySelector("#authModal")?.remove();
-  const wrap=document.createElement("div");
-  wrap.id="authModal";
-  wrap.className="auth-modal-backdrop";
-  wrap.innerHTML=`<div class="auth-modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><button class="auth-modal-close" id="authModalClose" aria-label="Fechar">×</button><h3>${esc(title)}</h3><div class="auth-modal-body">${bodyHtml}</div><div class="auth-modal-actions"><button class="primary-btn" id="authModalSubmit">${esc(submitLabel)}</button></div></div>`;
-  document.body.appendChild(wrap);
-  const close=()=>wrap.remove();
-  $("#authModalClose").onclick=close;
-  wrap.addEventListener("click",e=>{if(e.target===wrap)close();});
-  $("#authModalSubmit").onclick=()=>{if(onSubmit)onSubmit(close);else close();};
-  return wrap;
-}
 function renderAuth(tab="cliente", mode="login"){
   setAuthScreenMode(true);
   showOnly(authView);
-  const remembered=getRememberedAuth()||{};
-  const rememberedCliente=remembered.role==="cliente"?remembered:{};
-  const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.3</small></div>`;
-  const clientLogin=`<div class="form-grid auth-form">
-    <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
-    <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
-    <div class="remember-forgot"><label class="remember-line"><input id="lembrarCliente" type="checkbox" ${rememberedCliente.loginId?"checked":""}> <span>Lembrar de mim</span></label><button class="text-link" id="recuperarSenhaBtn">Esqueci minha senha</button></div>
-    <button class="primary-btn login-main-btn" id="entrarCliente">Entrar</button>
-    <div class="auth-divider"><span>ou</span></div>
-    <button class="google-btn" id="googleLoginBtn"><span class="google-g">G</span><span>Continuar com Google</span></button>
-    <button class="create-account-btn" id="irCadastro">Criar uma conta</button>
-    <div class="login-status" id="loginStatus" aria-live="polite"></div>
-  </div>`;
-  const clientSignup=`<div class="form-grid auth-form">
-    <label>Nome completo<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="cadNome" placeholder="Nome completo" autocomplete="name"></div></label>
-    <label>Telefone / WhatsApp<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("phone")}</span><input id="cadTelefone" type="tel" placeholder="(93) 99999-9999" autocomplete="tel"></div></label>
-    <label>E-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("mail")}</span><input id="cadEmail" type="email" placeholder="email@exemplo.com" autocomplete="email"></div></label>
-    <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="cadSenha" type="password" placeholder="Crie uma senha" autocomplete="new-password"><button type="button" class="password-toggle" id="toggleCadSenha" aria-label="Visualizar senha">👁</button></div></label>
-    <label>Confirmar senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="cadSenha2" type="password" placeholder="Confirme a senha" autocomplete="new-password"><button type="button" class="password-toggle" id="toggleCadSenha2" aria-label="Visualizar senha">👁</button></div></label>
-    <button class="primary-btn login-main-btn" id="cadCliente">Cadastrar e entrar</button>
-    <button class="create-account-btn" id="irLogin">Já tenho uma conta</button>
-  </div>`;
-  const adminLogin=`<div class="form-grid auth-form">
-    <label>Usuário administrador<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="adminUser" value="${esc(rememberedAdmin.user||"admin")}" placeholder="Usuário" autocomplete="username"></div></label>
-    <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="adminPass" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleAdminSenha" aria-label="Visualizar senha">👁</button></div></label>
-    <div class="remember-forgot"><label class="remember-line"><input id="lembrarAdmin" type="checkbox" ${rememberedAdmin.user?"checked":""}> <span>Lembrar de mim</span></label><button class="text-link" id="recuperarAdminBtn">Ajuda de acesso</button></div>
-    <button class="primary-btn login-main-btn" id="entrarAdmin">Entrar</button>
-    <div class="login-status" id="loginStatus" aria-live="polite"></div>
-  </div>`;
-  authView.innerHTML=`<div class="auth-card login-shell">
-    <div class="login-hero"><img src="icon-512.png" alt="Macroservice App" class="login-hero-logo"><h2>${mode==="cadastro"?"Criar conta":"Login"}</h2><p>Seu assistente de oficina</p></div>
-    <div class="auth-tabs"><button class="auth-tab ${tab==="cliente"?"active":""}" id="tabCliente">Cliente</button><button class="auth-tab ${tab==="admin"?"active":""}" id="tabAdmin">Administrador</button></div>
-    ${tab==="cliente"?(mode==="cadastro"?clientSignup:clientLogin):adminLogin}
-    ${footer}
-  </div>`;
+  const remembered = getRememberedAuth() || {};
+  const rememberedCliente = remembered.role === "cliente" ? remembered : {};
+  const rememberedAdmin = remembered.role === "admin" ? remembered : {};
+  authView.innerHTML=`<div class="auth-card login-shell"><div class="login-hero"><img src="icon-512.png" alt="Macroservice App" class="login-hero-logo"><h2>Login</h2><p>Macroservice App • Seu assistente de oficina</p></div>
+  <div class="auth-tabs"><button class="auth-tab ${tab==="cliente"?"active":""}" id="tabCliente">Cliente</button><button class="auth-tab ${tab==="admin"?"active":""}" id="tabAdmin">Administrador</button></div>
+  ${tab==="cliente"?`<div class="auth-mode-switch"><button class="mini-tab ${mode==="login"?"active":""}" id="clienteModoLogin">Entrar</button><button class="mini-tab ${mode==="cadastro"?"active":""}" id="clienteModoCadastro">Cadastrar</button></div>
+  ${mode==="login"?`<div class="form-grid auth-form"><label>Telefone ou e-mail<input id="clienteLoginId" placeholder="(93) 99999-9999 ou email" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></label><label>Senha<div class="password-wrap"><input id="clienteSenha" type="password" placeholder="Digite sua senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label><label class="remember-line"><input id="lembrarCliente" type="checkbox" ${rememberedCliente.loginId?"checked":""}> Lembrar de mim</label><button class="primary-btn" id="entrarCliente">Entrar</button><button class="google-btn" id="googleLoginBtn"><span class="google-mark">G</span> Entrar com Google</button><div class="auth-links"><button class="text-link" id="recuperarSenhaBtn">Esqueci minha senha</button><button class="text-link" id="irCadastro">Criar conta</button></div><div class="notice">Nesta versão local os dados ficam salvos neste aparelho. O botão Google já aparece no layout, porém a autenticação completa depende de integração online.</div></div>`:
+  `<div class="form-grid auth-form"><label>Nome completo<input id="cadNome" placeholder="Seu nome completo"></label><label>Telefone / WhatsApp<input id="cadTelefone" type="tel" placeholder="(93) 99999-9999"></label><label>E-mail<input id="cadEmail" type="email" placeholder="email@exemplo.com"></label><label>Senha<div class="password-wrap"><input id="cadSenha" type="password" placeholder="Crie uma senha" autocomplete="new-password"><button type="button" class="password-toggle" id="toggleCadSenha" aria-label="Visualizar senha">👁</button></div></label><label>Confirmar senha<div class="password-wrap"><input id="cadSenha2" type="password" placeholder="Confirme a senha" autocomplete="new-password"><button type="button" class="password-toggle" id="toggleCadSenha2" aria-label="Visualizar senha">👁</button></div></label><button class="primary-btn" id="cadCliente">Cadastrar e entrar</button><div class="auth-links"><button class="text-link" id="irLogin">Já tenho conta</button></div><div class="notice">Cadastre o cliente localmente neste aparelho. Para sincronização entre celulares será necessário banco online.</div></div>`}`:
+  `<div class="form-grid auth-form"><label>Usuário administrador<input id="adminUser" value="${esc(rememberedAdmin.user||"admin")}" autocomplete="username"></label><label>Senha<div class="password-wrap"><input id="adminPass" type="password" placeholder="Senha do administrador" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleAdminSenha" aria-label="Visualizar senha">👁</button></div></label><label class="remember-line"><input id="lembrarAdmin" type="checkbox" ${rememberedAdmin.user?"checked":""}> Lembrar de mim</label><button class="primary-btn" id="entrarAdmin">Entrar</button><div class="auth-links"><button class="text-link" id="recuperarAdminBtn">Esqueci minha senha</button></div><div class="notice">Demonstração local: usuário <b>admin</b> e senha <b>macroservice2026</b>. Para uso real, mover o login para autenticação online segura.</div></div>`}</div>`;
 
-  const status=(msg,error=false)=>{const el=$("#loginStatus");if(!el)return;el.textContent=msg||"";el.classList.toggle("error",!!error);};
-  const bindToggle=(btnSel,inputSel)=>{const btn=$(btnSel),input=$(inputSel);if(!btn||!input)return;btn.onclick=()=>{const show=input.type==="password";input.type=show?"text":"password";btn.textContent=show?"🙈":"👁";btn.setAttribute("aria-label",show?"Ocultar senha":"Visualizar senha");};};
-  const findCliente=(loginId)=>{const id=loginId.trim().toLowerCase();return store.get("macro_clientes").find(c=>String(c.telefone||"").trim().toLowerCase()===id||String(c.email||"").trim().toLowerCase()===id);};
-  const rememberChoice=(role,payload,checked)=>{if(checked)setRememberedAuth({role,...payload});else if(getRememberedAuth()?.role===role)clearRememberedAuth();};
-  const loginCliente=()=>{const loginId=$("#clienteLoginId").value.trim(),senha=$("#clienteSenha").value;if(!loginId||!senha)return status("Informe usuário e senha.",true);const cli=findCliente(loginId);if(!cli||String(cli.senha||"")!==senha)return status("Usuário ou senha incorretos.",true);rememberChoice("cliente",{loginId},$("#lembrarCliente").checked);setSession({role:"cliente",id:cli.id,nome:cli.nome,telefone:cli.telefone||"",email:cli.email||"",provider:cli.provider||"local"});renderHome();};
-  const loginAdmin=()=>{const user=$("#adminUser").value.trim(),pass=$("#adminPass").value;if(user==="admin"&&pass==="macroservice2026"){rememberChoice("admin",{user},$("#lembrarAdmin").checked);setSession({role:"admin",nome:"Administrador"});renderHome();}else status("Usuário ou senha incorretos.",true);};
-
-  $("#tabCliente").onclick=()=>renderAuth("cliente","login");
-  $("#tabAdmin").onclick=()=>renderAuth("admin","login");
-
-  if(tab==="cliente"&&mode==="login"){
-    bindToggle("#toggleClienteSenha","#clienteSenha");
-    $("#entrarCliente").onclick=loginCliente;
-    $("#clienteLoginId").addEventListener("keydown",e=>{if(e.key==="Enter")$("#clienteSenha").focus();});
-    $("#clienteSenha").addEventListener("keydown",e=>{if(e.key==="Enter")loginCliente();});
-    $("#irCadastro").onclick=()=>renderAuth("cliente","cadastro");
-    $("#recuperarSenhaBtn").onclick=()=>{
-      const current=esc($("#clienteLoginId").value||"");
-      openAuthModal("Recuperar senha",`<div class="form-grid"><label>Telefone ou e-mail<input id="recLogin" value="${current}" placeholder="Digite seu cadastro"></label><label>Nova senha<input id="recSenha" type="password" placeholder="Nova senha"></label><label>Confirmar nova senha<input id="recSenha2" type="password" placeholder="Repita a nova senha"></label><div class="modal-msg" id="recMsg"></div></div>`,`Atualizar senha`,close=>{const id=$("#recLogin").value.trim(),s1=$("#recSenha").value,s2=$("#recSenha2").value,msg=$("#recMsg");if(!id||!s1||!s2){msg.textContent="Preencha todos os campos.";return;}if(s1!==s2){msg.textContent="As senhas não conferem.";return;}const clientes=store.get("macro_clientes"),cli=clientes.find(c=>String(c.telefone||"").trim().toLowerCase()===id.toLowerCase()||String(c.email||"").trim().toLowerCase()===id.toLowerCase());if(!cli){msg.textContent="Cadastro não encontrado neste aparelho.";return;}cli.senha=s1;store.set("macro_clientes",clientes);close();status("Senha atualizada. Você já pode entrar.");});
+  const bindToggle = (btnSel, inputSel) => {
+    const btn = $(btnSel), input = $(inputSel);
+    if(!btn || !input) return;
+    btn.onclick = () => {
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.textContent = show ? "🙈" : "👁";
     };
-    $("#googleLoginBtn").onclick=()=>openAuthModal("Entrar com Google",`<p>O botão já está preparado na interface da Macroservice.</p><p>Para o login Google ser real e seguro, precisamos conectar uma autenticação online (Firebase ou Supabase) e informar as credenciais do projeto.</p><p><b>Não vou simular uma conta Google localmente.</b></p>`,`Entendi`);
-  }
+  };
 
-  if(tab==="cliente"&&mode==="cadastro"){
-    bindToggle("#toggleCadSenha","#cadSenha");bindToggle("#toggleCadSenha2","#cadSenha2");
-    $("#irLogin").onclick=()=>renderAuth("cliente","login");
-    $("#cadCliente").onclick=()=>{const nome=$("#cadNome").value.trim(),telefone=$("#cadTelefone").value.trim(),email=$("#cadEmail").value.trim(),senha=$("#cadSenha").value,senha2=$("#cadSenha2").value;if(!nome||!telefone||!senha)return alert("Preencha nome, telefone e senha.");if(senha.length<4)return alert("A senha precisa ter pelo menos 4 caracteres.");if(senha!==senha2)return alert("As senhas não conferem.");const clientes=store.get("macro_clientes");if(clientes.some(c=>String(c.telefone||"").trim()===telefone||(email&&String(c.email||"").trim().toLowerCase()===email.toLowerCase())))return alert("Já existe um cadastro com este telefone ou e-mail.");const cli={id:uid(),nome,telefone,email,senha,provider:"local"};clientes.push(cli);store.set("macro_clientes",clientes);setSession({role:"cliente",id:cli.id,nome:cli.nome,telefone:cli.telefone,email:cli.email||"",provider:"local"});renderHome();};
-  }
+  const findCliente = (loginId) => {
+    const id = loginId.trim().toLowerCase();
+    return store.get("macro_clientes").find(c =>
+      String(c.telefone || "").trim().toLowerCase() === id ||
+      String(c.email || "").trim().toLowerCase() === id
+    );
+  };
 
-  if(tab==="admin"){
-    bindToggle("#toggleAdminSenha","#adminPass");
-    $("#entrarAdmin").onclick=loginAdmin;
-    $("#adminPass").addEventListener("keydown",e=>{if(e.key==="Enter")loginAdmin();});
-    $("#recuperarAdminBtn").onclick=()=>openAuthModal("Acesso do administrador",`<p>Enquanto o app estiver usando autenticação local, o acesso de demonstração é:</p><div class="credential-box"><span>Usuário</span><b>admin</b><span>Senha</span><b>macroservice2026</b></div><p>Quando conectarmos o banco online, essa senha fixa será removida.</p>`,`Fechar`);
+  const rememberChoice = (role, payload, checked) => {
+    if(checked) setRememberedAuth({ role, ...payload });
+    else {
+      const current = getRememberedAuth();
+      if(current?.role === role) clearRememberedAuth();
+    }
+  };
+
+  $("#tabCliente").onclick = () => renderAuth("cliente", mode);
+  $("#tabAdmin").onclick = () => renderAuth("admin", "login");
+
+  if(tab === "cliente"){
+    $("#clienteModoLogin")?.addEventListener("click", () => renderAuth("cliente", "login"));
+    $("#clienteModoCadastro")?.addEventListener("click", () => renderAuth("cliente", "cadastro"));
+    $("#irCadastro")?.addEventListener("click", () => renderAuth("cliente", "cadastro"));
+    $("#irLogin")?.addEventListener("click", () => renderAuth("cliente", "login"));
+
+    if(mode === "login"){
+      bindToggle("#toggleClienteSenha", "#clienteSenha");
+      $("#entrarCliente").onclick = () => {
+        const loginId = $("#clienteLoginId").value.trim();
+        const senha = $("#clienteSenha").value.trim();
+        if(!loginId || !senha) return alert("Informe telefone/e-mail e senha.");
+        const cli = findCliente(loginId);
+        if(!cli || String(cli.senha||"") !== senha) return alert("Cadastro não encontrado ou senha incorreta.");
+        rememberChoice("cliente", { loginId }, $("#lembrarCliente").checked);
+        setSession({ role:"cliente", id:cli.id, nome:cli.nome, telefone:cli.telefone||"", email:cli.email||"", provider:cli.provider||"local" });
+        renderHome();
+      };
+      $("#recuperarSenhaBtn").onclick = () => {
+        const loginId = prompt("Informe o telefone ou e-mail cadastrado para redefinir a senha:", $("#clienteLoginId").value || "");
+        if(!loginId) return;
+        const clientes = store.get("macro_clientes");
+        const cli = clientes.find(c => String(c.telefone||"").trim().toLowerCase() === loginId.trim().toLowerCase() || String(c.email||"").trim().toLowerCase() === loginId.trim().toLowerCase());
+        if(!cli) return alert("Cliente não encontrado.");
+        const novaSenha = prompt("Digite a nova senha:");
+        if(!novaSenha) return;
+        cli.senha = novaSenha.trim();
+        store.set("macro_clientes", clientes);
+        alert("Senha atualizada com sucesso.");
+      };
+      $("#googleLoginBtn").onclick = () => {
+        const nome = prompt("Login Google (modo local):\nInforme seu nome:");
+        if(!nome) return;
+        const email = prompt("Informe seu e-mail Google:");
+        if(!email) return;
+        const clientes = store.get("macro_clientes");
+        let cli = clientes.find(c => String(c.email||"").trim().toLowerCase() === email.trim().toLowerCase());
+        if(!cli){
+          cli = { id: uid(), nome: nome.trim(), telefone: "", email: email.trim(), senha: "", provider: "google" };
+          clientes.push(cli);
+          store.set("macro_clientes", clientes);
+        }
+        rememberChoice("cliente", { loginId: email.trim() }, $("#lembrarCliente").checked);
+        setSession({ role:"cliente", id:cli.id, nome:cli.nome, telefone:cli.telefone||"", email:cli.email||"", provider:"google" });
+        alert("Login Google em modo local salvo. Para autenticação Google real, depois integraremos Firebase/Supabase.");
+        renderHome();
+      };
+    } else {
+      bindToggle("#toggleCadSenha", "#cadSenha");
+      bindToggle("#toggleCadSenha2", "#cadSenha2");
+      $("#cadCliente").onclick = () => {
+        const nome = $("#cadNome").value.trim();
+        const telefone = $("#cadTelefone").value.trim();
+        const email = $("#cadEmail").value.trim();
+        const senha = $("#cadSenha").value.trim();
+        const senha2 = $("#cadSenha2").value.trim();
+        if(!nome || !telefone || !senha) return alert("Preencha nome, telefone e senha.");
+        if(senha !== senha2) return alert("As senhas não conferem.");
+        const clientes = store.get("macro_clientes");
+        const jaExiste = clientes.find(c => String(c.telefone||"").trim() === telefone || (email && String(c.email||"").trim().toLowerCase() === email.toLowerCase()));
+        if(jaExiste) return alert("Já existe um cadastro com este telefone ou e-mail.");
+        const cli = { id: uid(), nome, telefone, email, senha, provider: "local" };
+        clientes.push(cli);
+        store.set("macro_clientes", clientes);
+        setSession({ role:"cliente", id:cli.id, nome:cli.nome, telefone:cli.telefone, email:cli.email||"", provider:"local" });
+        renderHome();
+      };
+    }
+  } else {
+    bindToggle("#toggleAdminSenha", "#adminPass");
+    $("#entrarAdmin").onclick = () => {
+      const user = $("#adminUser").value.trim();
+      const pass = $("#adminPass").value;
+      if(user === "admin" && pass === "macroservice2026"){
+        rememberChoice("admin", { user }, $("#lembrarAdmin").checked);
+        setSession({ role:"admin", nome:"Administrador" });
+        renderHome();
+      } else alert("Usuário ou senha incorretos.");
+    };
+    $("#recuperarAdminBtn").onclick = () => alert("Login administrador de demonstração:\nUsuário: admin\nSenha: macroservice2026");
   }
 }
 

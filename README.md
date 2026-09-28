@@ -1,4 +1,4 @@
-# Macroservice App V5.3
+# Macroservice App V5.4
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -31,13 +31,8 @@ A biblioteca de peças é genérica. A compatibilidade exata deve ser confirmada
 - Opção “Lembrar de mim” para cliente e administrador.
 
 
-## Novidades V5.3
-- Tela de login refinada seguindo o modelo visual enviado pelo usuário.
-- Campos de usuário, telefone, e-mail e senha com ícones integrados.
-- Botão de visualizar/ocultar senha preservado e melhor posicionado.
-- Recuperação de senha em janela própria, sem prompts soltos do navegador.
-- Login com tecla Enter e mensagens de erro dentro da tela.
-- Opção “Lembrar de mim” reorganizada junto ao acesso de recuperação.
-- Botão Google redesenhado; não simula autenticação Google local. A conexão real exige Firebase/Supabase e credenciais.
-- Rodapé interno da tela de login com MACROSERVICE, Inteligência Automotiva, Juruti - PA e versão.
-- Melhor adaptação a telas pequenas.
+## Novidades V5.4
+- Logo principal atualizado para a nova arte com fundo tecnológico em azul profundo.
+- Ícone do app atualizado sem a borda duplicada anterior.
+- Imagem do topo da tela de login atualizada automaticamente via `icon-512.png`.
+- Service worker atualizado para forçar renovação do cache da nova identidade visual.
