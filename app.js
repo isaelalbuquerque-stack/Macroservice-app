@@ -301,7 +301,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.10</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.11</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
@@ -466,8 +466,142 @@ function renderPecas(){moduleContent.innerHTML=`<div class="form-grid"><label>Si
   $("#savePec").onclick=()=>{const nome=$("#pecNome").value.trim();if(!nome)return alert("Informe a peça.");const r=customParts();r.push({id:uid(),nome,categoria:$("#pecCat").value.trim()||"Personalizada",subcategoria:$("#pecSub").value.trim()||"Outros",valor:Number($("#pecValor").value||0),aplicacao:$("#pecAplicacao").value.trim(),catalogo:false});store.set("macro_pecas_custom",r);renderPecas();};
 }
 
-function renderOrcamento(){const clientes=store.get("macro_clientes"),todosSrv=servicosDisponiveis(),todasPec=pecasDisponiveis();moduleContent.innerHTML=`<div class="form-grid"><label>Cliente<select id="orcCliente">${simpleOptions(clientes,c=>c.nome)}</select></label><label>Marca<select id="orcMarca">${marcaOptions()}</select></label><label>Modelo<select id="orcModelo"><option value="">Selecione a marca</option></select></label><label>Versão / Motor<input id="orcMotor" placeholder="Ex.: Working 1.4 Fire"></label><label>Placa<input id="orcPlaca" placeholder="ABC1D23"></label><label>Categoria do serviço<select id="orcTipo"><option value="">Selecione</option>${TIPOS.map(t=>`<option>${esc(t)}</option>`).join("")}</select></label><label>Grupo do serviço<select id="orcSub"><option value="">Selecione a categoria</option></select></label><label>Serviço<select id="orcServico"><option value="">Selecione o grupo</option></select></label><button class="secondary-btn" id="addSrv">Adicionar serviço</button><label>Categoria da peça<select id="orcPecCat"><option value="">Selecione</option>${PART_CATEGORIES.map(t=>`<option>${esc(t)}</option>`).join("")}</select></label><label>Grupo da peça<select id="orcPecSub"><option value="">Selecione a categoria</option></select></label><label>Peça<select id="orcPeca"><option value="">Selecione o grupo</option></select></label><button class="secondary-btn" id="addPec">Adicionar peça</button><div id="orcItens" class="section-list"></div><div class="total-box"><div>Mão de obra: <b id="totMO">R$ 0,00</b></div><div>Peças: <b id="totP">R$ 0,00</b></div><div>Tempo: <b id="totT">0 h</b></div><div class="total" id="totG">R$ 0,00</div></div><label>Observações do orçamento<textarea id="orcObs" placeholder="Condições, validade, recomendações..."></textarea></label><button class="primary-btn" id="saveOrc">Salvar orçamento</button></div>`;
-  bindMarcaModelo($("#orcMarca"),$("#orcModelo"));
+
+
+// V5.11 — catálogo FIPE de versões/motores para o Orçamento Rápido.
+// A biblioteca local continua definindo as famílias/modelos exibidos no app;
+// as versões completas são carregadas sob demanda da BrasilAPI para evitar
+// manter milhares de versões hardcoded e desatualizadas no pacote.
+const FIPE_CACHE_TTL=7*24*60*60*1000;
+function fipeIntegration(){
+  const cfg=window.MACROSERVICE_INTEGRATIONS?.fipeCatalog||{};
+  return {baseUrl:cfg.baseUrl||"https://brasilapi.com.br/api/fipe",vehicleTypes:Array.isArray(cfg.vehicleTypes)&&cfg.vehicleTypes.length?cfg.vehicleTypes:["carros","caminhoes"]};
+}
+function normVehicleText(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"");}
+function fipeCacheGet(key){
+  const obj=store.get("macro_fipe_cache_"+key,null);
+  if(!obj||!obj.ts||Date.now()-obj.ts>FIPE_CACHE_TTL)return null;
+  return obj.data;
+}
+function fipeCacheSet(key,data){store.set("macro_fipe_cache_"+key,{ts:Date.now(),data});}
+async function fipeJson(path,cacheKey){
+  const cached=fipeCacheGet(cacheKey);if(cached)return cached;
+  const base=fipeIntegration().baseUrl.replace(/\/$/,"");
+  const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),12000);
+  try{
+    const res=await fetch(base+path,{headers:{Accept:"application/json"},signal:ctrl.signal});
+    if(!res.ok){const e=new Error("FIPE_HTTP_"+res.status);e.status=res.status;throw e;}
+    const data=await res.json();fipeCacheSet(cacheKey,data);return data;
+  }finally{clearTimeout(timer);}
+}
+function fipeBrandTargets(marca){
+  const aliases={
+    "Volkswagen":["volkswagen","vw volkswagen","vw"],
+    "Caoa Chery":["caoa chery chery","caoa chery","chery"],
+    "Mercedes-Benz":["mercedes benz","mercedesbenz"],
+    "Land Rover":["land rover","landrover"],
+    "RAM":["ram"],"Mini":["mini"],"GWM":["gwm"],"BYD":["byd"],
+    "JAC":["jac"],"Effa":["effa"],"Shineray":["shineray"]
+  };
+  return (aliases[marca]||[marca]).map(normVehicleText).filter(Boolean);
+}
+function fipeBrandScore(candidate,targets){
+  const c=normVehicleText(candidate);let score=0;
+  for(const t of targets){
+    if(c===t)score=Math.max(score,100);
+    else if(c.includes(t)||t.includes(c))score=Math.max(score,80);
+    else{
+      const tokens=String(candidate||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").split(/[^a-z0-9]+/).filter(x=>x.length>1);
+      const tt=tokens.filter(x=>t.includes(x)).length;
+      score=Math.max(score,tt*10);
+    }
+  }
+  return score;
+}
+async function fipeFindBrand(type,marca){
+  const brands=await fipeJson(`/marcas/v1/${encodeURIComponent(type)}`,`brands_${type}`);
+  const targets=fipeBrandTargets(marca);
+  const ranked=(Array.isArray(brands)?brands:[]).map(b=>({...b,_score:fipeBrandScore(b.nome,targets)})).sort((a,b)=>b._score-a._score);
+  return ranked[0]?._score>=20?ranked[0]:null;
+}
+async function fipeVehiclesForBrand(marca){
+  const cfg=fipeIntegration(),out=[];
+  for(const type of cfg.vehicleTypes){
+    try{
+      const brand=await fipeFindBrand(type,marca);if(!brand)continue;
+      const vehicles=await fipeJson(`/veiculos/v1/${encodeURIComponent(type)}/${encodeURIComponent(brand.valor)}`,`vehicles_${type}_${brand.valor}`);
+      for(const v of (Array.isArray(vehicles)?vehicles:[]))out.push({modelo:v.modelo||v.nome||"",valor:String(v.valor||""),vehicleType:type,brandCode:String(brand.valor),brandName:brand.nome||marca});
+    }catch(e){console.warn("FIPE",type,marca,e);}
+  }
+  const seen=new Set();return out.filter(v=>{const k=`${v.vehicleType}|${v.brandCode}|${v.valor}|${v.modelo}`;if(seen.has(k))return false;seen.add(k);return true;});
+}
+function fipeVersionMatches(marca,modelo,row){
+  const r=normVehicleText(row?.modelo),m=normVehicleText(modelo);if(!r||!m)return false;
+  if(r.includes(m))return true;
+  if(marca==="Mercedes-Benz"&&/class$/i.test(modelo)){
+    const prefix=normVehicleText(modelo.replace(/-?class$/i,""));
+    if(prefix&&r.startsWith(prefix))return true;
+  }
+  if(marca==="BMW"&&/^s[eé]rie\s*[1-7]$/i.test(modelo)){
+    const n=(modelo.match(/[1-7]/)||[])[0];
+    if(n&&new RegExp(`^(m?${n}|${n}\\d{2})`).test(r))return true;
+  }
+  const compact=m.replace(/(sport|outdoor|triton|full|dakar)$/g,"");
+  return compact.length>=3&&r.includes(compact);
+}
+function fipeRowKey(r){return `${r.vehicleType}|${r.brandCode}|${r.valor}`;}
+function renderOrcamento(){
+  const clientes=store.get("macro_clientes"),todosSrv=servicosDisponiveis(),todasPec=pecasDisponiveis();
+  moduleContent.innerHTML=`<div class="form-grid"><label>Cliente<select id="orcCliente">${simpleOptions(clientes,c=>c.nome)}</select></label><label>Marca<select id="orcMarca">${marcaOptions()}</select></label><label>Modelo<select id="orcModelo"><option value="">Selecione a marca</option></select></label>
+  <label>Versão / Motor<select id="orcMotor" disabled><option value="">Selecione marca e modelo</option></select></label>
+  <label id="orcMotorSearchWrap" style="display:none">Pesquisar versão / motor<input id="orcMotorBusca" placeholder="Ex.: 1.0 MPI, 1.6 MSI, TSI, diesel, automático..."></label>
+  <label id="orcMotorManualWrap" style="display:none">Versão / motor manual<input id="orcMotorManual" placeholder="Digite a versão e motorização"></label>
+  <div class="plate-status" id="orcMotorStatus"></div>
+  <label>Placa<input id="orcPlaca" placeholder="ABC1D23"></label><label>Categoria do serviço<select id="orcTipo"><option value="">Selecione</option>${TIPOS.map(t=>`<option>${esc(t)}</option>`).join("")}</select></label><label>Grupo do serviço<select id="orcSub"><option value="">Selecione a categoria</option></select></label><label>Serviço<select id="orcServico"><option value="">Selecione o grupo</option></select></label><button class="secondary-btn" id="addSrv">Adicionar serviço</button><label>Categoria da peça<select id="orcPecCat"><option value="">Selecione</option>${PART_CATEGORIES.map(t=>`<option>${esc(t)}</option>`).join("")}</select></label><label>Grupo da peça<select id="orcPecSub"><option value="">Selecione a categoria</option></select></label><label>Peça<select id="orcPeca"><option value="">Selecione o grupo</option></select></label><button class="secondary-btn" id="addPec">Adicionar peça</button><div id="orcItens" class="section-list"></div><div class="total-box"><div>Mão de obra: <b id="totMO">R$ 0,00</b></div><div>Peças: <b id="totP">R$ 0,00</b></div><div>Tempo: <b id="totT">0 h</b></div><div class="total" id="totG">R$ 0,00</div></div><label>Observações do orçamento<textarea id="orcObs" placeholder="Condições, validade, recomendações..."></textarea></label><button class="primary-btn" id="saveOrc">Salvar orçamento</button></div>`;
+
+  const marcaSel=$("#orcMarca"),modeloSel=$("#orcModelo"),motorSel=$("#orcMotor"),motorBusca=$("#orcMotorBusca"),motorStatus=$("#orcMotorStatus"),motorManual=$("#orcMotorManual"),motorManualWrap=$("#orcMotorManualWrap"),motorSearchWrap=$("#orcMotorSearchWrap");
+  let fipeBrandRows=[],fipeDefaultRows=[],fipeMap=new Map(),fipeLoadSeq=0;
+  const setManualMode=(force=false)=>{const manual=force||motorSel.value==="__manual";motorManualWrap.style.display=manual?"grid":"none";if(manual)setTimeout(()=>motorManual.focus(),0);};
+  const drawFipeRows=(rows,query="")=>{
+    const q=normVehicleText(query);let list=rows;
+    if(q)list=fipeBrandRows.filter(r=>normVehicleText(r.modelo).includes(q));
+    fipeMap=new Map(list.map(r=>[fipeRowKey(r),r]));
+    const options=list.map(r=>`<option value="${esc(fipeRowKey(r))}">${esc(r.modelo)}${r.vehicleType==="caminhoes"?" • Caminhão":""}</option>`).join("");
+    motorSel.innerHTML=`<option value="">Selecione a versão / motor</option>${options}<option value="__manual">Outra versão / digitar manualmente</option>`;
+    motorSel.disabled=false;setManualMode(false);
+    if(q)motorStatus.textContent=list.length?`${list.length} versão(ões) encontrada(s) na busca FIPE.`:"Nenhuma versão encontrada nessa busca. Você pode digitar manualmente.";
+  };
+  const loadVersions=async()=>{
+    const marca=marcaSel.value,modelo=modeloSel.value,seq=++fipeLoadSeq;
+    motorBusca.value="";motorManual.value="";motorManualWrap.style.display="none";motorSearchWrap.style.display="none";fipeBrandRows=[];fipeDefaultRows=[];fipeMap.clear();
+    if(!marca||!modelo){motorSel.disabled=true;motorSel.innerHTML=`<option value="">Selecione marca e modelo</option>`;motorStatus.textContent="";return;}
+    motorSel.disabled=true;motorSel.innerHTML=`<option value="">Carregando versões...</option>`;motorStatus.textContent="Consultando catálogo FIPE de versões e motores...";motorStatus.className="plate-status";
+    try{
+      const rows=await fipeVehiclesForBrand(marca);if(seq!==fipeLoadSeq)return;
+      fipeBrandRows=rows.sort((a,b)=>String(a.modelo).localeCompare(String(b.modelo),"pt-BR"));
+      fipeDefaultRows=fipeBrandRows.filter(r=>fipeVersionMatches(marca,modelo,r));
+      if(!fipeDefaultRows.length)fipeDefaultRows=fipeBrandRows;
+      motorSearchWrap.style.display="grid";
+      if(fipeDefaultRows.length){
+        drawFipeRows(fipeDefaultRows);
+        const exact=fipeDefaultRows.length!==fipeBrandRows.length;
+        motorStatus.textContent=exact?`${fipeDefaultRows.length} versão(ões) FIPE encontrada(s) para ${modelo}. Use a busca para localizar outras versões da ${marca}.`:`Catálogo FIPE da ${marca} carregado. Use a busca para localizar a versão/motor de ${modelo}.`;
+        motorStatus.classList.add("ok");
+      }else{
+        motorSel.disabled=false;motorSel.innerHTML=`<option value="__manual">Digitar versão / motor manualmente</option>`;motorStatus.textContent="Não encontrei versões FIPE para esta montadora. Digite a versão/motor manualmente.";motorStatus.classList.add("warn");motorSel.value="__manual";setManualMode(true);
+      }
+    }catch(e){
+      if(seq!==fipeLoadSeq)return;
+      motorSel.disabled=false;motorSel.innerHTML=`<option value="__manual">Digitar versão / motor manualmente</option>`;motorSel.value="__manual";setManualMode(true);motorStatus.textContent="Catálogo FIPE indisponível no momento. O orçamento continua funcionando com preenchimento manual.";motorStatus.classList.add("error");
+    }
+  };
+  bindMarcaModelo(marcaSel,modeloSel);
+  const baseMarcaChange=marcaSel.onchange;
+  marcaSel.onchange=()=>{baseMarcaChange?.();loadVersions();};
+  modeloSel.addEventListener("change",loadVersions);
+  motorSel.addEventListener("change",()=>setManualMode(false));
+  motorBusca.addEventListener("input",()=>drawFipeRows(fipeDefaultRows,motorBusca.value));
+
   $("#orcTipo").onchange=()=>{$("#orcSub").innerHTML=`<option value="">Selecione</option>${serviceSubcategories($("#orcTipo").value).map(x=>`<option>${esc(x)}</option>`).join("")}`;$("#orcServico").innerHTML=`<option value="">Selecione o grupo</option>`;};
   $("#orcSub").onchange=()=>{$("#orcServico").innerHTML=simpleOptions(servicesBy($("#orcTipo").value,$("#orcSub").value),s=>`${s.nome} • ${s.tempo} h`);};
   $("#orcPecCat").onchange=()=>{$("#orcPecSub").innerHTML=`<option value="">Selecione</option>${partSubcategories($("#orcPecCat").value).map(x=>`<option>${esc(x)}</option>`).join("")}`;$("#orcPeca").innerHTML=`<option value="">Selecione o grupo</option>`;};
@@ -476,8 +610,16 @@ function renderOrcamento(){const clientes=store.get("macro_clientes"),todosSrv=s
   const draw=()=>{const mo=itens.filter(i=>i.tipo==="Serviço").reduce((a,b)=>a+b.valor*b.qtd,0),pp=itens.filter(i=>i.tipo==="Peça").reduce((a,b)=>a+b.valor*b.qtd,0),tt=itens.filter(i=>i.tipo==="Serviço").reduce((a,b)=>a+b.tempo*b.qtd,0);$("#orcItens").innerHTML=itens.length?itens.map((i,idx)=>`<div class="list-card"><strong>${esc(i.nome)}</strong><span class="muted">${esc(i.tipo)}${i.categoria?" • "+esc(i.categoria):""}</span><div class="form-grid" style="margin-top:8px"><label>Quantidade<input data-qtd="${idx}" type="number" min="1" step="1" value="${i.qtd}"></label><label>Valor unitário (R$)<input data-val="${idx}" type="number" min="0" step="0.01" value="${i.valor}"></label><button class="danger-btn" data-rem="${idx}">Remover</button></div></div>`).join(""):`<div class="empty">Adicione serviços e peças.</div>`;$("#totMO").textContent=money(mo);$("#totP").textContent=money(pp);$("#totT").textContent=tt.toFixed(1).replace(".0","")+" h";$("#totG").textContent=money(mo+pp);$$('[data-qtd]').forEach(x=>x.onchange=()=>{itens[Number(x.dataset.qtd)].qtd=Math.max(1,Number(x.value||1));draw();});$$('[data-val]').forEach(x=>x.onchange=()=>{itens[Number(x.dataset.val)].valor=Math.max(0,Number(x.value||0));draw();});$$('[data-rem]').forEach(x=>x.onclick=()=>{itens.splice(Number(x.dataset.rem),1);draw();});};draw();
   $("#addSrv").onclick=()=>{const s=todosSrv.find(x=>String(x.id)===$("#orcServico").value);if(s){itens.push({tipo:"Serviço",nome:s.nome,categoria:s.tipo,subcategoria:s.subcategoria,valor:Number(s.valor||0),tempo:Number(s.tempo||1),qtd:1});draw();}};
   $("#addPec").onclick=()=>{const p=todasPec.find(x=>String(x.id)===$("#orcPeca").value);if(p){itens.push({tipo:"Peça",nome:p.nome,categoria:p.categoria,subcategoria:p.subcategoria,valor:Number(p.valor||0),tempo:0,qtd:1});draw();}};
-  $("#saveOrc").onclick=()=>{const c=clientes.find(x=>String(x.id)===$("#orcCliente").value);if(!c||!$("#orcMarca").value||!$("#orcModelo").value||!itens.length)return alert("Preencha cliente, veículo e itens.");const total=itens.reduce((a,b)=>a+b.valor*b.qtd,0),tempo=itens.reduce((a,b)=>a+b.tempo*b.qtd,0),hist=store.get("macro_historico");hist.unshift({id:uid(),clienteId:c.id,cliente:c.nome,telefone:c.telefone||"",marca:$("#orcMarca").value,modelo:$("#orcModelo").value,motor:$("#orcMotor").value.trim(),placa:$("#orcPlaca").value.trim().toUpperCase(),veiculo:`${$("#orcMarca").value} ${$("#orcModelo").value}`,data:new Date().toLocaleString("pt-BR"),total,tempo,itens:JSON.parse(JSON.stringify(itens)),obs:$("#orcObs").value.trim(),tipoDocumento:"orcamento"});store.set("macro_historico",hist);alert("Orçamento salvo.");renderHistorico();};
+  $("#saveOrc").onclick=()=>{
+    const c=clientes.find(x=>String(x.id)===$("#orcCliente").value);if(!c||!marcaSel.value||!modeloSel.value||!itens.length)return alert("Preencha cliente, veículo e itens.");
+    const selectedFipe=fipeMap.get(motorSel.value)||null;const motor=motorSel.value==="__manual"?motorManual.value.trim():(selectedFipe?.modelo||"");
+    if(!motor)return alert("Selecione ou informe a versão / motor do veículo.");
+    const total=itens.reduce((a,b)=>a+b.valor*b.qtd,0),tempo=itens.reduce((a,b)=>a+b.tempo*b.qtd,0),hist=store.get("macro_historico");
+    hist.unshift({id:uid(),clienteId:c.id,cliente:c.nome,telefone:c.telefone||"",marca:marcaSel.value,modelo:modeloSel.value,motor,placa:$("#orcPlaca").value.trim().toUpperCase(),veiculo:`${marcaSel.value} ${modeloSel.value}`,fipeModelCode:selectedFipe?.valor||"",fipeBrandCode:selectedFipe?.brandCode||"",fipeVehicleType:selectedFipe?.vehicleType||"",data:new Date().toLocaleString("pt-BR"),total,tempo,itens:JSON.parse(JSON.stringify(itens)),obs:$("#orcObs").value.trim(),tipoDocumento:"orcamento"});
+    store.set("macro_historico",hist);alert("Orçamento salvo.");renderHistorico();
+  };
 }
+
 
 function printDocument(doc,title="Orçamento"){
   const isMaint=title.includes("Manutenção");

@@ -1,4 +1,4 @@
-/* Macroservice App V5.9 — integrações externas
+/* Macroservice App V5.11 — integrações externas
    IMPORTANTE:
    - A chave publicável do Supabase pode ser usada no front-end.
    - NUNCA coloque APIBRASIL_TOKEN, service_role ou qualquer chave secreta aqui.
@@ -21,5 +21,12 @@ window.MACROSERVICE_INTEGRATIONS = {
   plateLookup: {
     mode: "supabase-edge",
     endpoint: ""
+  },
+
+  // Catálogo público FIPE usado no Orçamento Rápido para listar versões/motores.
+  // Não usa token da APIBrasil nem créditos de consulta por placa.
+  fipeCatalog: {
+    baseUrl: "https://brasilapi.com.br/api/fipe",
+    vehicleTypes: ["carros", "caminhoes"]
   }
 };

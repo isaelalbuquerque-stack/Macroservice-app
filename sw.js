@@ -1,12 +1,12 @@
-const CACHE_NAME="macroservice-v5.10";
+const CACHE_NAME="macroservice-v5.11";
 const ASSETS=[
   "./",
   "./index.html",
-  "./styles.css?v=5.10",
-  "./integrations.js?v=5.10",
-  "./catalog.js?v=5.10",
-  "./procedures.js?v=5.10",
-  "./app.js?v=5.10",
+  "./styles.css?v=5.11",
+  "./integrations.js?v=5.11",
+  "./catalog.js?v=5.11",
+  "./procedures.js?v=5.11",
+  "./app.js?v=5.11",
   "./logo.png",
   "./icon-192.png",
   "./icon-512.png",
@@ -30,6 +30,12 @@ self.addEventListener("activate",event=>{
 
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
+  const url=new URL(event.request.url);
+  // APIs externas (BrasilAPI/FIPE etc.) ficam fora do cache do PWA.
+  if(url.origin!==self.location.origin){
+    event.respondWith(fetch(event.request));
+    return;
+  }
   event.respondWith(
     fetch(event.request)
       .then(response=>{

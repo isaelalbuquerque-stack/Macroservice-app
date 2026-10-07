@@ -1,4 +1,4 @@
-# Macroservice App V5.10
+# Macroservice App V5.11
 
 Atualização funcional mantendo a interface azul/laranja da revisão anterior.
 
@@ -120,3 +120,15 @@ URL base configurada:
 - Isso elimina o preflight CORS que estava falhando no Chrome.
 - A Edge Function continua mantendo `APIBRASIL_TOKEN` apenas no Supabase.
 - Modo de consulta real permanece bloqueado até adicionarmos Supabase Auth.
+
+
+## V5.11 — versões e motores no Orçamento Rápido
+- O campo **Versão / Motor** deixou de ser apenas texto livre e agora é uma lista dinâmica.
+- Ao selecionar **Marca → Modelo**, o app consulta a FIPE pela **BrasilAPI** e carrega as versões/motorizações disponíveis da montadora.
+- A consulta cobre **carros e caminhões**, importante para marcas/modelos como Iveco, Agrale e Volkswagen Delivery.
+- O campo **Pesquisar versão / motor** permite localizar rapidamente 1.0, 1.4, 1.6, TSI, diesel, automático etc.
+- Quando a nomenclatura FIPE não coincide exatamente com a família/modelo da biblioteca, a pesquisa continua disponível em todas as versões da montadora.
+- Se a BrasilAPI estiver sem conexão, o orçamento continua funcionando com **preenchimento manual**.
+- As listas FIPE são armazenadas em cache local por 7 dias para reduzir chamadas e acelerar o uso.
+- A consulta de versões FIPE **não usa o saldo/crédito da APIBrasil de consulta por placa**.
+- O Service Worker não tenta mais armazenar respostas de APIs externas no cache do PWA.

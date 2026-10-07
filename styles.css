@@ -56,3 +56,9 @@
 .mini-inline-btn{margin-top:8px;border:1px solid #4c7894;background:#12334a;color:#fff;border-radius:8px;padding:7px 9px;font-weight:800;width:100%}
 .integration-settings{border:1px solid #244c68;border-radius:12px;background:#071827;overflow:hidden}.integration-settings summary{cursor:pointer;padding:12px 14px;font-weight:900;background:#0d2a3e}.integration-settings-body{padding:12px}
 .vehicle-spec-grid span b{display:block;color:#9fc0d4;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+
+
+/* V5.11 — versões/motores FIPE no Orçamento Rápido */
+#orcMotorStatus{min-height:20px;margin-top:-4px}
+#orcMotorSearchWrap,#orcMotorManualWrap{margin-top:-2px}
+#orcMotor:disabled{opacity:.72;cursor:wait}
