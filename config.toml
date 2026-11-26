@@ -1,0 +1,3 @@
+[functions.relatorio-os-]
+# A função valida o token no Supabase Auth e confere o ID autorizado.
+verify_jwt = false

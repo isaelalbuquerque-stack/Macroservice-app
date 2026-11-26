@@ -1,6 +1,6 @@
-# Macroservice App V5.11
+# Macroservice App V5.12.1
 
-Atualização funcional mantendo a interface azul/laranja da revisão anterior.
+O Histórico agora permite gerar, revisar e imprimir um texto para o cliente a partir da ficha de manutenção. Consulte [Ativar a IA na oficina](ATIVAR-IA.md) para configurar a geração online. A opção **Organizar sem IA** funciona no próprio aparelho.
 
 ## Novidades
 - Biblioteca de veículos nacionais e importados: Marca → Modelo → Versão/Ano/Motor.
@@ -122,13 +122,21 @@ URL base configurada:
 - Modo de consulta real permanece bloqueado até adicionarmos Supabase Auth.
 
 
-## V5.11 — versões e motores no Orçamento Rápido
-- O campo **Versão / Motor** deixou de ser apenas texto livre e agora é uma lista dinâmica.
-- Ao selecionar **Marca → Modelo**, o app consulta a FIPE pela **BrasilAPI** e carrega as versões/motorizações disponíveis da montadora.
-- A consulta cobre **carros e caminhões**, importante para marcas/modelos como Iveco, Agrale e Volkswagen Delivery.
-- O campo **Pesquisar versão / motor** permite localizar rapidamente 1.0, 1.4, 1.6, TSI, diesel, automático etc.
-- Quando a nomenclatura FIPE não coincide exatamente com a família/modelo da biblioteca, a pesquisa continua disponível em todas as versões da montadora.
-- Se a BrasilAPI estiver sem conexão, o orçamento continua funcionando com **preenchimento manual**.
-- As listas FIPE são armazenadas em cache local por 7 dias para reduzir chamadas e acelerar o uso.
-- A consulta de versões FIPE **não usa o saldo/crédito da APIBrasil de consulta por placa**.
-- O Service Worker não tenta mais armazenar respostas de APIs externas no cache do PWA.
+## V5.11 — versões/motores FIPE + consulta de placa mais robusta
+- Orçamento Rápido agora mantém a seleção local **Marca → Modelo** e, quando há internet, carrega da BrasilAPI/FIPE as **versões e motorizações** disponíveis para o modelo escolhido.
+- Depois da versão/motor, o app carrega **ano/combustível** e os **detalhes FIPE** (código, valor e mês de referência).
+- A consulta FIPE usa cache local para reduzir chamadas e continua permitindo preenchimento manual quando estiver sem internet.
+- O orçamento salvo passa a guardar versão FIPE, ano/combustível, código FIPE, valor e referência, quando disponíveis.
+- Consulta por placa no Supabase tenta primeiro POST simples e, se o navegador bloquear por CORS, usa automaticamente **GET/JSONP** como fallback.
+- O arquivo oficial da Edge Function deste pacote é `supabase/consultar-placa/index.ts`, em `homolog: true`.
+- **Não é necessário colocar crédito no APIBrasil para continuar os testes de homologação.** Só pensar em saldo quando formos ativar produção (`homolog: false`).
+
+### Fluxo FIPE no orçamento
+1. Escolha **Marca**.
+2. Escolha **Modelo**.
+3. Aguarde carregar **Versão / motor (FIPE)**.
+4. Escolha a versão/motorização.
+5. Escolha **Ano / combustível (FIPE)**.
+6. O código FIPE e a referência são preenchidos automaticamente quando disponíveis.
+
+A lista dinâmica vem da BrasilAPI/FIPE; o `catalog.js` continua como fallback local/offline e para a navegação inicial por modelos.

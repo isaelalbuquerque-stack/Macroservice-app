@@ -21,12 +21,5 @@ window.MACROSERVICE_INTEGRATIONS = {
   plateLookup: {
     mode: "supabase-edge",
     endpoint: ""
-  },
-
-  // Catálogo público FIPE usado no Orçamento Rápido para listar versões/motores.
-  // Não usa token da APIBrasil nem créditos de consulta por placa.
-  fipeCatalog: {
-    baseUrl: "https://brasilapi.com.br/api/fipe",
-    vehicleTypes: ["carros", "caminhoes"]
   }
 };

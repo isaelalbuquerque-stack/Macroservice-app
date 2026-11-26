@@ -58,7 +58,16 @@
 .vehicle-spec-grid span b{display:block;color:#9fc0d4;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
 
 
-/* V5.11 — versões/motores FIPE no Orçamento Rápido */
-#orcMotorStatus{min-height:20px;margin-top:-4px}
-#orcMotorSearchWrap,#orcMotorManualWrap{margin-top:-2px}
-#orcMotor:disabled{opacity:.72;cursor:wait}
+/* V5.11 — seleção dinâmica FIPE no orçamento */
+.fipe-status{padding:10px 12px;border:1px solid #244c68;border-radius:10px;background:#071827;color:#92aabd;font-size:.82rem;line-height:1.35}
+.fipe-status.ok{border-color:#205b43;background:#08271b;color:#9ce8bb}
+.fipe-status.warn{border-color:#755d18;background:#2d2508;color:#ffe39a}
+#orcVersaoFipe:disabled,#orcAnoFipe:disabled{opacity:.58}
+
+.report-panel{border:1px solid #8798a4;border-radius:14px;padding:16px;min-width:0}
+.report-panel h3,.report-panel p{margin:0}
+.report-panel p,.report-panel [role=status]{font-size:.95rem;line-height:1.45}
+.report-panel [hidden],.report-panel [role=status]:empty{display:none}
+.report-panel .actions{display:flex;flex-wrap:wrap;gap:8px}
+.report-panel textarea{min-height:8rem}
+.report-panel button:disabled{opacity:.65}
