@@ -71,3 +71,18 @@
 .report-panel .actions{display:flex;flex-wrap:wrap;gap:8px}
 .report-panel textarea{min-height:8rem}
 .report-panel button:disabled{opacity:.65}
+
+.dashboard-grid .assistant-card {
+  grid-column: 1 / -1;
+  min-height: 76px;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding: 14px 18px;
+  gap: 14px;
+  text-align: left;
+  border-left: 4px solid #ff7a00;
+}
+.assistant-card strong, .assistant-card small { display: block; }
+.assistant-card strong { font-size: 1.12rem; }
+.assistant-card small { margin-top: 3px; color: #b8c9d6; font-size: .9rem; font-weight: 500; }
+.assistant-card .menu-icon { color: #ff9c48; }

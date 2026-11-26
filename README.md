@@ -1,6 +1,6 @@
-# Macroservice App V5.12.1
+# Macroservice App V5.12.2
 
-O Histórico agora permite gerar, revisar e imprimir um texto para o cliente a partir da ficha de manutenção. Consulte [Ativar a IA na oficina](ATIVAR-IA.md) para configurar a geração online. A opção **Organizar sem IA** funciona no próprio aparelho.
+O primeiro botão do painel do administrador, **Macro Assistente**, abre relatórios avulsos e fichas de orçamentos salvos. O Histórico permite imprimir o texto revisado. Consulte [Ativar a IA na oficina](ATIVAR-IA.md) para configurar a geração online. A opção **Organizar sem IA** funciona no próprio aparelho.
 
 ## Novidades
 - Biblioteca de veículos nacionais e importados: Marca → Modelo → Versão/Ano/Motor.

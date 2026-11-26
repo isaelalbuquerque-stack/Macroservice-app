@@ -1,13 +1,13 @@
-const CACHE_NAME="macroservice-v5.12.1";
+const CACHE_NAME="macroservice-v5.12.2";
 const ASSETS=[
   "./",
   "./index.html",
-  "./styles.css?v=5.12.1",
-  "./integrations.js?v=5.12.1",
-  "./catalog.js?v=5.12.1",
-  "./procedures.js?v=5.12.1",
-  "./relatorio-os.js?v=5.12.1",
-  "./app.js?v=5.12.1",
+  "./styles.css?v=5.12.2",
+  "./integrations.js?v=5.12.2",
+  "./catalog.js?v=5.12.2",
+  "./procedures.js?v=5.12.2",
+  "./relatorio-os.js?v=5.12.2",
+  "./app.js?v=5.12.2",
   "./logo.png",
   "./icon-192.png",
   "./icon-512.png",
@@ -23,7 +23,7 @@ self.addEventListener("install",event=>{
 self.addEventListener("activate",event=>{
   event.waitUntil(
     caches.keys().then(keys=>Promise.all(
-      keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))
+      keys.filter(k=>k.startsWith("macroservice-v") && k!==CACHE_NAME).map(k=>caches.delete(k))
     ))
   );
   self.clients.claim();
@@ -32,7 +32,7 @@ self.addEventListener("activate",event=>{
 self.addEventListener("fetch",event=>{
   if(event.request.method!=="GET")return;
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, event.request.mode === "navigate" ? {cache: "no-cache"} : undefined)
       .then(response=>{
         const copy=response.clone();
         caches.open(CACHE_NAME).then(cache=>cache.put(event.request,copy));

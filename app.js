@@ -314,7 +314,7 @@ function renderAuth(tab="cliente", mode="login"){
   const remembered=getRememberedAuth()||{};
   const rememberedCliente=remembered.role==="cliente"?remembered:{};
   const rememberedAdmin=remembered.role==="admin"?remembered:{};
-  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.12.1</small></div>`;
+  const footer=`<div class="auth-brand-footer"><strong>MACROSERVICE</strong><span>Inteligência Automotiva</span><small>Juruti - PA • V5.12.2</small></div>`;
   const clientLogin=`<div class="form-grid auth-form">
     <label>Telefone ou e-mail<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("user")}</span><input id="clienteLoginId" placeholder="Usuário" value="${esc(rememberedCliente.loginId||"")}" autocomplete="username"></div></label>
     <label>Senha<div class="input-icon-wrap"><span class="field-icon">${authFieldIcon("lock")}</span><input id="clienteSenha" type="password" placeholder="Senha" autocomplete="current-password"><button type="button" class="password-toggle" id="toggleClienteSenha" aria-label="Visualizar senha">👁</button></div></label>
@@ -389,14 +389,17 @@ function renderHome(){
   setAuthScreenMode(false);
   const s=getSession(); if(!s)return renderAuth(); showOnly(homeView);
   const solicitacoes=store.get("macro_solicitacoes"), novas=solicitacoes.filter(x=>x.status==="pendente").length;
-  const cardsAdmin=`<button class="menu-card" data-view="solicitacoes"><span class="menu-icon">🔔</span><strong>Serviços Solicitados</strong>${novas?`<span class="badge">${novas}</span>`:""}</button><button class="menu-card" data-view="agendamento"><span class="menu-icon">📅</span><strong>Agenda</strong></button><button class="menu-card" data-view="orcamento"><span class="menu-icon">📄</span><strong>Orçamento Rápido</strong></button><button class="menu-card" data-view="clientes"><span class="menu-icon">👥</span><strong>Clientes</strong></button><button class="menu-card" data-view="veiculos"><span class="menu-icon">🚗</span><strong>Veículos</strong></button><button class="menu-card" data-view="servicos"><span class="menu-icon">🛠️</span><strong>Serviços</strong></button><button class="menu-card" data-view="pecas"><span class="menu-icon">⚙️</span><strong>Peças</strong></button><button class="menu-card" data-view="historico"><span class="menu-icon">🕘</span><strong>Histórico</strong></button><button class="menu-card" data-view="relatorios"><span class="menu-icon">📊</span><strong>Relatórios</strong></button><button class="menu-card" data-view="configuracoes"><span class="menu-icon">⚙️</span><strong>Configurações</strong></button>`;
+  const cardsAdmin=`<button class="menu-card assistant-card" data-view="assistente">
+    <span class="menu-icon" aria-hidden="true">✦</span>
+    <span><strong>Macro Assistente</strong><small>Relatórios de manutenção com IA</small></span>
+  </button><button class="menu-card" data-view="solicitacoes"><span class="menu-icon">🔔</span><strong>Serviços Solicitados</strong>${novas?`<span class="badge">${novas}</span>`:""}</button><button class="menu-card" data-view="agendamento"><span class="menu-icon">📅</span><strong>Agenda</strong></button><button class="menu-card" data-view="orcamento"><span class="menu-icon">📄</span><strong>Orçamento Rápido</strong></button><button class="menu-card" data-view="clientes"><span class="menu-icon">👥</span><strong>Clientes</strong></button><button class="menu-card" data-view="veiculos"><span class="menu-icon">🚗</span><strong>Veículos</strong></button><button class="menu-card" data-view="servicos"><span class="menu-icon">🛠️</span><strong>Serviços</strong></button><button class="menu-card" data-view="pecas"><span class="menu-icon">⚙️</span><strong>Peças</strong></button><button class="menu-card" data-view="historico"><span class="menu-icon">🕘</span><strong>Histórico</strong></button><button class="menu-card" data-view="relatorios"><span class="menu-icon">📊</span><strong>Relatórios</strong></button><button class="menu-card" data-view="configuracoes"><span class="menu-icon">⚙️</span><strong>Configurações</strong></button>`;
   const cardsCliente=`<button class="menu-card" data-view="solicitar"><span class="menu-icon">🛠️</span><strong>Solicitar Serviço</strong></button><button class="menu-card" data-view="meusPedidos"><span class="menu-icon">📋</span><strong>Meus Pedidos</strong></button><button class="menu-card" data-view="meusVeiculos"><span class="menu-icon">🚗</span><strong>Meus Veículos</strong></button><button class="menu-card" data-view="meusOrcamentos"><span class="menu-icon">📄</span><strong>Meus Orçamentos</strong></button>`;
-  homeView.innerHTML=`<div class="profile-strip"><div><strong>${s.role==="admin"?"Administrador":"Olá, "+esc(s.nome)+"!"}</strong><br><small>${s.role==="admin"?"Painel administrativo":"Área do cliente"}</small></div><button class="link-btn" id="logoutBtn">Sair</button></div><div class="welcome"><h2>${s.role==="admin"?"Painel da Oficina":"Bem-vindo! 👋"}</h2><p>${s.role==="admin"?"Controle de solicitações, agenda e orçamento.":"Solicite serviços e acompanhe seus pedidos."}</p></div><div class="dashboard-grid">${s.role==="admin"?cardsAdmin:cardsCliente}</div>`;
+  homeView.innerHTML=`<div class="profile-strip"><div><strong>${s.role==="admin"?"Administrador":"Olá, "+esc(s.nome)+"!"}</strong><br><small>${s.role==="admin"?"Painel administrativo · V5.12.2":"Área do cliente"}</small></div><button class="link-btn" id="logoutBtn">Sair</button></div><div class="welcome"><h2>${s.role==="admin"?"Painel da Oficina":"Bem-vindo! 👋"}</h2><p>${s.role==="admin"?"Controle de solicitações, agenda e orçamento.":"Solicite serviços e acompanhe seus pedidos."}</p></div><div class="dashboard-grid">${s.role==="admin"?cardsAdmin:cardsCliente}</div>`;
   $("#logoutBtn").onclick=()=>{clearSession();renderAuth();}; $$(".menu-card").forEach(b=>b.onclick=()=>showModule(b.dataset.view));
 }
 
 function showModule(view){showOnly(moduleView);render(view);} $("#backBtn").onclick=()=>renderHome();
-function render(view){$("#backBtn").onclick=()=>renderHome();const map={solicitar:["Solicitar Serviço","Escolha veículo, serviço, data e horário",renderSolicitar],meusPedidos:["Meus Pedidos","Acompanhe suas solicitações",renderMeusPedidos],meusVeiculos:["Meus Veículos","Cadastre os veículos que você utiliza",renderMeusVeiculos],meusOrcamentos:["Meus Orçamentos","Orçamentos vinculados ao seu cadastro",renderMeusOrcamentos],solicitacoes:["Serviços Solicitados","Solicitações recebidas dos clientes",renderSolicitacoesAdmin],agendamento:["Agenda","Horários reservados e disponíveis",renderAgendaAdmin],orcamento:["Orçamento Rápido","Cliente, veículo, serviços e peças",renderOrcamento],clientes:["Clientes","Cadastro e consulta de clientes",renderClientes],veiculos:["Veículos","Cadastro dos veículos atendidos",renderVeiculos],servicos:["Serviços","Serviços organizados por sistema",renderServicos],pecas:["Peças","Biblioteca mecânica e elétrica",renderPecas],historico:["Histórico / OS","Orçamentos, manutenção e impressão",renderHistorico],relatorios:["Relatórios","Visão geral da oficina",renderRelatorios],configuracoes:["Configurações","Dados e regras da Macroservice",renderConfig]};const item=map[view]||map.solicitar;moduleTitle.textContent=item[0];moduleSubtitle.textContent=item[1];item[2]();}
+function render(view){$("#backBtn").onclick=()=>renderHome();const map={assistente:["Macro Assistente","Relatórios de manutenção",renderMacroAssistente],solicitar:["Solicitar Serviço","Escolha veículo, serviço, data e horário",renderSolicitar],meusPedidos:["Meus Pedidos","Acompanhe suas solicitações",renderMeusPedidos],meusVeiculos:["Meus Veículos","Cadastre os veículos que você utiliza",renderMeusVeiculos],meusOrcamentos:["Meus Orçamentos","Orçamentos vinculados ao seu cadastro",renderMeusOrcamentos],solicitacoes:["Serviços Solicitados","Solicitações recebidas dos clientes",renderSolicitacoesAdmin],agendamento:["Agenda","Horários reservados e disponíveis",renderAgendaAdmin],orcamento:["Orçamento Rápido","Cliente, veículo, serviços e peças",renderOrcamento],clientes:["Clientes","Cadastro e consulta de clientes",renderClientes],veiculos:["Veículos","Cadastro dos veículos atendidos",renderVeiculos],servicos:["Serviços","Serviços organizados por sistema",renderServicos],pecas:["Peças","Biblioteca mecânica e elétrica",renderPecas],historico:["Histórico / OS","Orçamentos, manutenção e impressão",renderHistorico],relatorios:["Relatórios","Visão geral da oficina",renderRelatorios],configuracoes:["Configurações","Dados e regras da Macroservice",renderConfig]};const item=map[view]||map.solicitar;moduleTitle.textContent=item[0];moduleSubtitle.textContent=item[1];item[2]();}
 
 function marcaOptions(selected=""){return `<option value="">Selecione</option>`+MARCAS.map(m=>`<option ${m===selected?"selected":""}>${esc(m)}</option>`).join("");}
 function modeloOptions(marca,selected=""){const rows=VEHICLE_LIBRARY[marca]||[];return `<option value="">Selecione</option>`+rows.map(m=>`<option ${m===selected?"selected":""}>${esc(m)}</option>`).join("")+`<option value="Outro modelo">Outro modelo</option>`;}
@@ -624,10 +627,38 @@ function printDocument(doc,title="Orçamento"){
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;color:#111;margin:28px}header{display:flex;align-items:center;gap:18px;border-bottom:3px solid #ff7a00;padding-bottom:12px}header img{width:120px;height:70px;object-fit:cover}h1{margin:0;color:#0b2a43}h2{margin:4px 0;color:#ff7a00}.box{border:1px solid #bbb;padding:10px;margin:12px 0;border-radius:6px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #bbb;padding:7px;text-align:left}th{background:#eee}.total{font-size:20px;font-weight:bold;text-align:right;margin-top:12px}.muted{color:#555;font-size:12px}@media print{button{display:none}}</style></head><body><header><img src="logo.png"><div><h1>MACROSERVICE</h1><h2>Inteligência Automotiva</h2><div>Juruti - PA • (93) 98124-8315 • isael.albuquerque@gmail.com</div></div></header><h2>${esc(title)}</h2><div class="box"><b>Cliente:</b> ${esc(doc.cliente||"")} &nbsp; <b>Telefone:</b> ${esc(doc.telefone||"")}<br><b>Veículo:</b> ${esc(doc.veiculo||"")} ${esc(doc.motor||"")} &nbsp; <b>Placa:</b> ${esc(doc.placa||"")}<br>${doc.anoFipe?`<b>Ano/combustível:</b> ${esc(doc.anoFipe||"")} ${esc(doc.combustivel||"")} &nbsp; `:""}${doc.fipe?`<b>FIPE:</b> ${esc(doc.fipe)} ${doc.fipeValorTexto?"• "+esc(doc.fipeValorTexto):""}<br>`:""}<b>Data:</b> ${esc(doc.data||"")}</div>${isMaint?`<div class="box"><b>Diagnóstico inicial:</b><br>${esc(doc.diagnostico||"")}</div>`:""}<table><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd.</th><th>Unitário</th><th>Total</th></tr></thead><tbody>${itens||`<tr><td colspan="5">Sem itens</td></tr>`}</tbody></table><div class="total">Total: ${money(doc.total||0)}</div>${testes?`<h3>Testes e medições</h3><table><thead><tr><th>Teste</th><th>Resultado</th></tr></thead><tbody>${testes}</tbody></table>`:""}${isMaint?`<div class="box"><b>Serviços executados / observações:</b><br>${esc(doc.execucao||"")}</div><div class="box"><b>Recomendações técnicas:</b><br>${esc(doc.recomendacoes||"")}</div><div class="box"><b>Próxima revisão:</b> ${esc(doc.proximaRevisao||"")}</div>`:`<div class="box"><b>Observações:</b><br>${esc(doc.obs||"")}</div>`}${isMaint && doc.resumoCliente ? `<section class="box"><h3>Relatório para o cliente</h3><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(doc.resumoCliente)}</div></section>` : ""}<p class="muted">Documento gerado pelo Macroservice App. Use a opção Imprimir do navegador e selecione “Salvar como PDF” para gerar PDF.</p><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);w.document.close();
 }
 
-function renderMaintenanceForm(id) {
-  const base = store.get("macro_historico").find(x => x.id === id);
-  if (!base) return renderHistorico();
-  moduleContent.innerHTML = `<div class="form-grid"><div class="notice">Relatório de manutenção para <b>${esc(base.cliente)}</b> — ${esc(base.veiculo)}</div>
+function renderMacroAssistente() {
+  if (getSession()?.role !== "admin") return renderHome();
+  const orcamentos = store.get("macro_historico").filter(item => item.tipoDocumento !== "manutencao");
+  moduleContent.innerHTML = `<div class="form-grid">
+    <button class="primary-btn" id="macroRelatorioNovo">Iniciar relatório avulso</button>
+    ${orcamentos.length ? `<label>Usar um orçamento salvo
+      <select id="macroOrcamento"><option value="">Selecione o orçamento</option>
+        ${orcamentos.map((item, index) => `<option value="${index}">${esc([item.cliente, item.veiculo, item.data].filter(Boolean).join(" · "))}</option>`).join("")}
+      </select></label>
+      <button class="secondary-btn" id="macroAbrirOS" disabled>Abrir ficha do orçamento</button>` : ""}
+  </div>`;
+  $("#macroRelatorioNovo").onclick = () => renderMaintenanceForm(null, "assistente");
+  if (!orcamentos.length) return;
+  const select = $("#macroOrcamento"), abrir = $("#macroAbrirOS");
+  select.onchange = () => { abrir.disabled = select.value === ""; };
+  abrir.onclick = () => {
+    if (select.value !== "") renderMaintenanceForm(orcamentos[Number(select.value)].id, "assistente");
+  };
+}
+
+function renderMaintenanceForm(id, origem = "historico") {
+  if (getSession()?.role !== "admin") return renderHome();
+  const avulso = id == null;
+  const base = avulso ? null : store.get("macro_historico").find(x => x.id === id);
+  if (!avulso && !base) return showModule(origem);
+  $("#backBtn").onclick = () => showModule(origem);
+  moduleTitle.textContent = origem === "assistente" ? "Macro Assistente" : "Relatório de manutenção";
+  moduleSubtitle.textContent = avulso ? "Novo relatório avulso" : "Relatório do orçamento";
+  moduleContent.innerHTML = `<div class="form-grid">${avulso ? `
+      <label>Veículo<input id="manVeiculo" maxlength="300" placeholder="Ex.: Chevrolet S10 2.5 Flex 2014"></label>
+      <label>Cliente (opcional)<input id="manCliente" maxlength="200"></label>` :
+      `<div class="notice">Relatório de manutenção para <b>${esc(base.cliente)}</b> — ${esc(base.veiculo)}</div>`}
       <label>Diagnóstico inicial<textarea id="manDiag" placeholder="Sintomas, falhas encontradas, inspeção inicial..."></textarea></label>
       <label>Teste / medição 1<input id="t1n" placeholder="Ex.: Compressão dos cilindros"></label>
       <label>Resultado 1<input id="t1r" placeholder="Ex.: C1 11,2 | C2 11,2 | C3 11,2 | C4 12,2 bar"></label>
@@ -640,18 +671,32 @@ function renderMaintenanceForm(id) {
       <label>Próxima revisão<input id="manProx" placeholder="Ex.: 10.000 km ou 6 meses"></label>
       ${reportPanel()}
       <button class="primary-btn" id="saveMan">Salvar relatório de manutenção</button></div>`;
-  bindReportPanel(base);
+  const dadosDaOS = () => {
+    if (!avulso) return base;
+    const veiculo = $("#manVeiculo").value.trim();
+    return {veiculo, modelo: veiculo, cliente: $("#manCliente").value.trim(), itens: []};
+  };
+  bindReportPanel(dadosDaOS);
   $("#saveMan").onclick = () => {
+    const ficha = dadosDaOS();
+    const resumoCliente = $("#reportText").value.trim();
+    if (avulso && !ficha.veiculo) {
+      $("#manVeiculo").focus();
+      return alert("Informe o veículo para identificar este relatório no histórico.");
+    }
+    if (avulso && !resumoCliente && !localReport(reportFacts(ficha))) {
+      return alert("Registre o serviço ou as medições antes de salvar.");
+    }
     const rel = {
-      ...base, id: uid(), origemId: base.id, tipoDocumento: "manutencao",
-      data: new Date().toLocaleString("pt-BR"), ...maintenanceFields(),
-      resumoCliente: $("#reportText").value.trim()
+      ...ficha, id: uid(), tipoDocumento: "manutencao",
+      data: new Date().toLocaleString("pt-BR"), ...maintenanceFields(), resumoCliente
     };
+    if (base) rel.origemId = base.id;
     const hist = store.get("macro_historico");
     hist.unshift(rel);
     store.set("macro_historico", hist);
     alert("Relatório de manutenção salvo.");
-    renderHistorico();
+    showModule("historico");
   };
 }
 

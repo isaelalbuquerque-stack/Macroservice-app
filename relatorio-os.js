@@ -83,14 +83,14 @@ async function generateReport(facts, config, token, signal) {
   return data.relatorio.trim();
 }
 
-function bindReportPanel(base) {
+function bindReportPanel(dadosDaOS) {
   const text = $("#reportText"), status = $("#reportStatus"), access = $("#reportAccess");
   const generate = $("#reportGenerate"), local = $("#reportLocal"), login = $("#reportLogin");
   const email = $("#reportEmail"), password = $("#reportPassword");
   let busy = false;
   async function run(mode) {
     if (busy) return;
-    const facts = reportFacts(base);
+    const facts = reportFacts(dadosDaOS());
     const localText = localReport(facts);
     if (!localText) {
       status.textContent = "Registre pelo menos um sintoma, medição, serviço ou recomendação na ficha.";
@@ -134,7 +134,7 @@ function bindReportPanel(base) {
         result = await generateReport(facts, config, reportSession.token, controller.signal);
       }
       if (!visible()) return;
-      if (JSON.stringify(reportFacts(base)) !== JSON.stringify(facts) || text.value !== previous) {
+      if (JSON.stringify(reportFacts(dadosDaOS())) !== JSON.stringify(facts) || text.value !== previous) {
         status.textContent = "A ficha mudou durante a geração. Confira suas alterações e gere o texto novamente.";
         return;
       }
